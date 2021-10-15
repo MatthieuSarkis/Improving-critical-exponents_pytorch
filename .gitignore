@@ -1,0 +1,17 @@
+__pycache__
+.DS_Store
+.ipynb_checkpoints
+env/
+venv/
+.env/
+.vscode/
+data/
+saved_models/
+saved_files/
+*.gif
+job.sh
+job_cnn.sh
+job_gan.sh
+*.egg-info/
+build/
+dist/
