@@ -75,7 +75,7 @@ def train(epochs: int,
         optimizer.zero_grad()
         generated_images = generator_model(noise)
         generated_images = torch.sign(generated_images)
-        gen_loss = generator_loss(criterion, generated_images, cnn_model)
+        gen_loss = generator_loss(criterion, generated_images, cnn_model, device)
         gen_loss.backward()
         optimizer.step()
 

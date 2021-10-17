@@ -19,10 +19,11 @@ def generator_loss(loss_function: torch.nn.modules.loss._Loss,
                    generated_images: torch.tensor,
                    cnn: torch.nn.Module,
                    wanted_output: float = 0.5928,
+                   device: str = 'cpu',
                    ) -> torch.tensor:
     
     predicted_output = cnn(generated_images) 
-    wanted_output = torch.full(predicted_output.shape, wanted_output, dtype=torch.float32)
+    wanted_output = torch.full(predicted_output.shape, wanted_output, dtype=torch.float32, device=device)
     
     return loss_function(wanted_output, predicted_output)
 
