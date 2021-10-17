@@ -29,7 +29,7 @@ def main(args):
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
     
     generator_model = generator(noise_dim=args.noise_dim, device=args.device)
-    cnn_model = torch.load(args.CNN_model_path)   
+    cnn_model = torch.load(args.CNN_model_path).to(args.device)   
     optimizer = optim.Adam(params=generator_model.parameters(), lr=args.learning_rate)
     criterion = nn.MSELoss()
     logger = Logger(save_dir=save_dir)
