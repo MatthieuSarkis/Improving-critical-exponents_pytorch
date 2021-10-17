@@ -17,7 +17,7 @@ import torch
 import torch.nn as nn
 from typing import Dict
 
-from utils import (
+from src.generator.utils import (
     plot_cnn_histogram, 
     plot_losses,
 )

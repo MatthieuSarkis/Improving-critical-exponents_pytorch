@@ -20,8 +20,8 @@ from torch.utils.data import DataLoader, random_split
 from torch import optim
 from torch import nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-#from torchsummary import summary
 from typing import Dict, Tuple
+#from torchsummary import summary
 
 from src.cnn.data import generate_data_torch
 from src.cnn.network import cnn
@@ -31,9 +31,6 @@ def main(args):
 
     # Create the directory tree
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
-    save_dir_model = os.path.join(save_dir, 'model')
-    save_dir_ckpts = os.path.join(save_dir_model, 'ckpts')
-    os.makedirs(save_dir_ckpts, exist_ok=True)
     
     # Create the data
     X_train, y_train, X_test, y_test = generate_data_torch(args.dataset_size)
@@ -63,11 +60,11 @@ def main(args):
                                 criterion=criterion,
                                 scheduler=scheduler,
                                 device=args.device,
-                                save_dir_ckpts=save_dir_ckpts)
+                                save_checkpoints=args.save_checkpoints,
+                                set_lr_scheduler=args.set_lr_scheduler,
+                                save_model=args.save_model,
+                                save_dir=save_dir)
     
-    if args.save_model:
-        torch.save(model, os.path.join(save_dir_model, 'final_model.pt'))
-
     # Save a few logs
     if args.set_save_args:
         with open(os.path.join(save_dir, 'args.json'), 'w') as f:
@@ -89,9 +86,16 @@ def train(epochs: int,
           criterion: torch.nn.modules.loss._Loss,
           scheduler: torch.optim.lr_scheduler._LRScheduler,
           device: str,
-          save_dir_ckpts: str,
+          save_checkpoints: bool,
+          set_lr_scheduler: bool,
+          save_model: bool,
+          save_dir: str,
           ) -> Tuple[cnn, Dict[list, list]]:
     
+    save_dir_model = os.path.join(save_dir, 'model')
+    save_dir_ckpts = os.path.join(save_dir_model, 'ckpts')
+    os.makedirs(save_dir_ckpts, exist_ok=True)
+
     loss_history = {'train': [], 'test': []}
     
     for epoch in range(epochs):
@@ -136,12 +140,12 @@ def train(epochs: int,
         loss_history['train'].append(train_loss)
         loss_history['test'].append(test_loss)
         
-        if args.set_lr_scheduler:
+        if set_lr_scheduler:
             scheduler.step(test_loss)
         
         print("Epoch: {}/{}, Train Loss: {:.4f}, Test Loss: {:.4f}, Time: {:.2f}s".format(epoch+1, epochs, train_loss, test_loss, time.time()-initial_time))
 
-        if args.save_checkpoints:
+        if save_checkpoints:
             checkpoint_dict = {
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
@@ -150,6 +154,9 @@ def train(epochs: int,
                 'test_loss': test_loss,
                 }
             torch.save(checkpoint_dict, os.path.join(save_dir_ckpts, 'ckpt_{}.pt'.format(epoch)))
+
+    if save_model:
+        torch.save(model, os.path.join(save_dir_model, 'final_model.pt'))
 
     return model, loss_history
 
@@ -167,7 +174,7 @@ if __name__ == '__main__':
     parser.add_argument("--learning_rate", type=float, default=10e-4)
     parser.add_argument("--device", type=str, default='cpu')
     
-    parser.add_argument('--set_save_args', dest='set_save_args', action='store_true')
+    parser.add_argument('--set_save', dest='set_save_args', action='store_true')
     parser.add_argument('--no-set_save_args', dest='set_save_args', action='store_false')
     parser.set_defaults(set_save_args=True)
     

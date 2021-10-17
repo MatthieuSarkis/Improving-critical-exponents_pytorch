@@ -20,9 +20,9 @@ import torch.nn as nn
 from torch import optim
 from typing import Tuple, Dict
 
-from network import generator
-from utils import generator_loss
-from logger import Logger
+from src.generator.network import generator
+from src.generator.utils import generator_loss
+from src.generator.logger import Logger
 
 def main(args):
 
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     parser.add_argument("--noise_dim", type=int, default=100)
     parser.add_argument("--save_dir", type=str, default="./saved_models/gan_cnn_regression")
     parser.add_argument("--ckpt_freq", type=int, default=10)
-    parser.add_argument("--CNN_model_path", type=str, default="./saved_models/CNN_L128_N10000/saved-model.h5")
+    parser.add_argument("--CNN_model_path", type=str, default="./saved_models/cnn_regression/2021.10.17.18.29.07/model/final_model.pt")
     parser.add_argument("--device", type=str, default='cpu')
 
     parser.add_argument('--set_generate_plots', dest='set_generate_plots', action='store_true')
