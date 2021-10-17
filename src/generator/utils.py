@@ -18,8 +18,8 @@ import matplotlib.pyplot as plt
 def generator_loss(loss_function: torch.nn.modules.loss._Loss, 
                    generated_images: torch.tensor,
                    cnn: torch.nn.Module,
+                   device: str,
                    wanted_output: float = 0.5928,
-                   device: str = 'cpu',
                    ) -> torch.tensor:
     
     predicted_output = cnn(generated_images) 
