@@ -103,7 +103,7 @@ class Logger():
                         is_final_model: bool = False):
         
         if is_final_model:
-            torch.save(model.state_dict(), os.path.join(self.save_dir_model, 'final_model.pt'))
+            torch.save(model, os.path.join(self.save_dir_model, 'final_model.pt'))
         
         else:
             if (epoch + 1) % ckpt_freq == 0:

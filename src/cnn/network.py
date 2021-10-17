@@ -13,7 +13,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.modules.conv import ConvTranspose2d
 
 class cnn(nn.Module):
 
@@ -102,63 +101,3 @@ class cnn(nn.Module):
             net.bias.data.fill_(1e-2)
    
  
-class cnn_test(nn.Module):
-
-    def __init__(self,
-                 lattice_size: int = 128, 
-                 n_neurons: int = 512, 
-                 device: str = 'str',
-                 ) -> None:
-
-        super(cnn_test, self).__init__()
-        self.L = lattice_size 
-        self.device = device
-
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding='same') 
-        self.bn1 = nn.BatchNorm2d(32)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding='same')
-        self.bn2 = nn.BatchNorm2d(64)
-        self.linear1 = nn.Linear(64*(self.L//4)**2, n_neurons) 
-        self.linear2 = nn.Linear(n_neurons, 1)             
-                      
-        for network in [self.conv1, self.conv2, self.linear1, self.linear2]:
-            network.apply(self._initialize_weights)
-        
-        self.to(device)
-        
-    def forward(self,
-                x: torch.tensor,
-                ) -> torch.tensor:
-
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        x = self.conv2(x)
-        x = self.bn2(x)
-        x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        
-        x = torch.flatten(x, start_dim=1)
-        
-        x = self.linear1(x)
-        x = F.relu(x)
-        x = self.linear2(x)
-        x = F.relu(x)
-        return x
-    
-    @staticmethod 
-    def _initialize_weights(net: torch.nn.Module) -> None:
-        """Xavier initialization of the weights in the Linear and Convolutional layers of a torch.nn.Module object.
-
-        Args:
-            net (torch.nn.Module): neural net whose weights are to be initialized
-
-        Returns:
-            no value
-        """
-
-        if type(net) == nn.Linear or type(net) == nn.Conv2d or type(net) == nn.ConvTranspose2d:
-            nn.init.xavier_uniform_(net.weight)
-            net.bias.data.fill_(1e-2)
-    

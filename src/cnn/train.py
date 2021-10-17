@@ -23,8 +23,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 #from torchsummary import summary
 from typing import Dict, Tuple
 
-from src.CNN_regression.data import generate_data_torch
-from src.CNN_regression.network import cnn
+from src.cnn.data import generate_data_torch
+from src.cnn.network import cnn
 
 
 def main(args):
@@ -32,7 +32,8 @@ def main(args):
     # Create the directory tree
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
     save_dir_model = os.path.join(save_dir, 'model')
-    os.makedirs(save_dir_model, exist_ok=True)
+    save_dir_ckpts = os.path.join(save_dir_model, 'ckpts')
+    os.makedirs(save_dir_ckpts, exist_ok=True)
     
     # Create the data
     X_train, y_train, X_test, y_test = generate_data_torch(args.dataset_size)
@@ -62,7 +63,7 @@ def main(args):
                                 criterion=criterion,
                                 scheduler=scheduler,
                                 device=args.device,
-                                save_dir_model=save_dir_model)
+                                save_dir_ckpts=save_dir_ckpts)
     
     if args.save_model:
         torch.save(model, os.path.join(save_dir_model, 'final_model.pt'))
@@ -88,7 +89,7 @@ def train(epochs: int,
           criterion: torch.nn.modules.loss._Loss,
           scheduler: torch.optim.lr_scheduler._LRScheduler,
           device: str,
-          save_dir_model: str,
+          save_dir_ckpts: str,
           ) -> Tuple[cnn, Dict[list, list]]:
     
     loss_history = {'train': [], 'test': []}
@@ -140,8 +141,6 @@ def train(epochs: int,
         
         print("Epoch: {}/{}, Train Loss: {:.4f}, Test Loss: {:.4f}, Time: {:.2f}s".format(epoch+1, epochs, train_loss, test_loss, time.time()-initial_time))
 
-        os.makedirs(save_dir_model, exist_ok=True)
-
         if args.save_checkpoints:
             checkpoint_dict = {
                 'epoch': epoch,
@@ -150,7 +149,7 @@ def train(epochs: int,
                 'train_loss': train_loss,
                 'test_loss': test_loss,
                 }
-            torch.save(checkpoint_dict, os.path.join(save_dir_model, 'ckpt_{}.pt'.format(epoch)))
+            torch.save(checkpoint_dict, os.path.join(save_dir_ckpts, 'ckpt_{}.pt'.format(epoch)))
 
     return model, loss_history
 

@@ -23,7 +23,6 @@ from typing import Tuple, Dict
 from network import generator
 from utils import generator_loss
 from logger import Logger
-from src.CNN_regression.network import cnn
 
 def main(args):
 
