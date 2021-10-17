@@ -10,11 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-import numpy as np
 import os
 import json
 import time
-from tensorflow.keras import Sequential
+import torch
+import torch.nn as nn
 from typing import Dict
 
 from utils import (
@@ -39,14 +39,17 @@ class Logger():
         """
         
         self.save_dir = save_dir
+        self.save_dir_model = os.path.join(self.save_dir, "model")
+        self.save_dir_ckpts = os.path.join(self.save_dir_model, "ckpts")
         self.save_dir_logs = os.path.join(self.save_dir, "logs")
         self.save_dir_plots = os.path.join(self.save_dir, "plots")
 
+        os.makedirs(self.save_dir_ckpts, exist_ok=True)
         os.makedirs(self.save_dir_logs, exist_ok=True)
         os.makedirs(self.save_dir_plots, exist_ok=True)
         
         self.logs: dict = {}
-        self.logs['generator_loss'] = []
+        self.logs['loss'] = []
         
         self.time_stamp = [0, 0]
         self.initial_value_portfolio = None
@@ -63,21 +66,20 @@ class Logger():
                      ) -> None:
         """Method to print on the status of the run on the standard output"""
         
-        print('    - Episode: {:<13d} | Generator loss: {:<13.2f} | Duration in seconds: {:<13.2f}'.format(epoch, 
-                                                                                              self.logs["generator_loss"][-1], 
+        print('    - Episode: {:<13d} | Loss: {:<13.2f} | Duration in seconds: {:<13.2f}'.format(epoch, 
+                                                                                              self.logs["loss"][-1], 
                                                                                               self.time_stamp[1]-self.time_stamp[0]))
     
     def save_logs(self) -> None:
         """Saves all the necessary logs to 'save_dir_logs' directory."""
         
-        generator_loss_array = np.array(self.logs['generator_loss'])
-        np.save(os.path.join(self.save_dir_logs, "generator_loss.npy"), generator_loss_array)
+        with open(os.path.join(self.save_dir, 'logs.json'), 'w') as f:
+            json.dump(self.logs, f,  indent=4, separators=(',', ': '))
         
     def generate_plots(self,
-                       generator: Sequential,
-                       cnn: Sequential,
+                       generator: nn.Module,
+                       cnn: nn.Module,
                        epoch: int,
-                       labels: str = "saved_models/CNN_L128_N10000/labels.json",
                        noise_dim: int = 100,
                        bins_number: int = 100,
                        ) -> None:
@@ -92,12 +94,32 @@ class Logger():
                            save_dir=self.save_dir_plots,
                            noise_dim=noise_dim,
                            bins_number=bins_number)
+     
+    def save_checkpoint(self,
+                        model: nn.Module,
+                        optimizer: torch.optim.Optimizer = None,
+                        epoch: int = None,
+                        ckpt_freq: int = None,
+                        is_final_model: bool = False):
         
+        if is_final_model:
+            torch.save(model.state_dict(), os.path.join(self.save_dir_model, 'final_model.pt'))
+        
+        else:
+            if (epoch + 1) % ckpt_freq == 0:
+                checkpoint_dict = {
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'loss': self.logs['loss'],
+                    }
+                torch.save(checkpoint_dict, os.path.join(self.save_dir_ckpts, 'ckpt_{}.pt'.format(epoch)))
+
     def save_metadata(self,
                       args: Dict,
                       ) -> None:
         """Method to save the command line arguments into a json file."""
 
-        with open(os.path.join(self.save_dir, 'metadata.json'), 'w') as outfile:
-            json.dump(args, outfile,  indent=2, separators=(',', ': '))
+        with open(os.path.join(self.save_dir, 'metadata.json'), 'w') as f:
+            json.dump(args, f,  indent=4, separators=(',', ': '))
         

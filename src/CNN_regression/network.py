@@ -11,10 +11,9 @@
 # that they have been altered from the originals.
 
 import torch
-from torch import tensor
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.modules.batchnorm import BatchNorm1d
+from torch.nn.modules.conv import ConvTranspose2d
 
 class cnn(nn.Module):
 
@@ -79,8 +78,8 @@ class cnn(nn.Module):
         self.to(device)
 
     def forward(self,
-                x: tensor,
-                ) -> tensor:
+                x: torch.tensor,
+                ) -> torch.tensor:
 
         x = self.conv_block(x)
         x = torch.flatten(x, start_dim=1)
@@ -98,7 +97,7 @@ class cnn(nn.Module):
             no value
         """
 
-        if type(net) == nn.Linear or type(net) == nn.Conv2d:
+        if type(net) == nn.Linear or type(net) == nn.Conv2d or type(net) == nn.ConvTranspose2d:
             nn.init.xavier_uniform_(net.weight)
             net.bias.data.fill_(1e-2)
    
@@ -128,8 +127,8 @@ class cnn_test(nn.Module):
         self.to(device)
         
     def forward(self,
-                x: tensor,
-                ) -> tensor:
+                x: torch.tensor,
+                ) -> torch.tensor:
 
         x = self.conv1(x)
         x = self.bn1(x)
@@ -159,7 +158,7 @@ class cnn_test(nn.Module):
             no value
         """
 
-        if type(net) == nn.Linear or type(net) == nn.Conv2d:
+        if type(net) == nn.Linear or type(net) == nn.Conv2d or type(net) == nn.ConvTranspose2d:
             nn.init.xavier_uniform_(net.weight)
             net.bias.data.fill_(1e-2)
     

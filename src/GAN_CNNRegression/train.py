@@ -10,65 +10,97 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Train the GAN model."""
 
 from argparse import ArgumentParser
 import os
 from datetime import datetime
 
-import tensorflow as tf
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # for ignoring the some of tf warnings
+import torch
+import torch.nn as nn
+from torch import optim
+from typing import Tuple, Dict
 
-from dcgan import make_generator_model
-from utils import *
+from network import generator
+from utils import generator_loss
 from logger import Logger
+from src.CNN_regression.network import cnn
 
 def main(args):
 
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
-
-    generator = make_generator_model(args.noise_dim)
-    cnn = tf.keras.models.load_model(args.CNN_model_path, custom_objects={'tf': tf})
     
-    loss_function = tf.keras.losses.MeanSquaredError()
-    generator_optimizer = tf.keras.optimizers.Adam(1e-3)
-
-    checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer, generator=generator)
-    checkpoint_dir = os.path.join(save_dir, 'training_checkpoints')
-    checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
-
+    generator_model = generator(noise_dim=args.noise_dim, device=args.device)
+    cnn_model = torch.load(args.CNN_model_path)   
+    optimizer = optim.Adam(params=generator_model.parameters(), lr=args.learning_rate)
+    criterion = nn.MSELoss()
     logger = Logger(save_dir=save_dir)
 
-    for epoch in range(args.epochs):
+    generator_model, loss = train(epochs=args.epochs,
+                                  logger=logger,
+                                  batch_size=args.batch_size,
+                                  noise_dim=args.noise_dim,
+                                  generator_model=generator_model,
+                                  cnn_model=cnn_model,
+                                  optimizer=optimizer,
+                                  criterion=criterion,
+                                  ckpt_freq=args.ckpt_freq,
+                                  bins_number=args.bins_number,
+                                  device=args.device)
+
+    logger.save_metadata(vars(args))
+
+
+def train(epochs: int,
+          logger: Logger,
+          batch_size: int,
+          noise_dim: int,
+          generator_model: torch.nn.Module,
+          cnn_model: torch.nn.Module,
+          optimizer: torch.optim.Optimizer,
+          criterion: torch.nn.modules.loss._Loss,
+          ckpt_freq: int,
+          bins_number: int,
+          device: str,
+          ) -> Tuple[nn.Module, Dict]:
+    
+    generator_model.train()
+    cnn_model.eval()
+    
+    for epoch in range(epochs):
 
         logger.set_time_stamp(1)
 
-        noise = tf.random.normal([args.batch_size, args.noise_dim], mean=0, stddev=1.0)
+        noise = torch.randn(batch_size, noise_dim).to(device)
 
-        gen_loss = train_step(generator= generator, 
-                              cnn=cnn, 
-                              generator_optimizer=generator_optimizer,  
-                              loss_function=loss_function, 
-                              noise= noise)
+        optimizer.zero_grad()
 
-        if (epoch + 1) % args.ckpt_freq == 0:
-            checkpoint.save(file_prefix = checkpoint_prefix)
+        generated_images = generator_model(noise)
+        generated_images = torch.sign(generated_images)
+        gen_loss = generator_loss(criterion, generated_images, cnn_model)
 
+        gen_loss.backward()
+        optimizer.step()
+
+        logger.save_checkpoint(model=generator_model,
+                               optimizer=optimizer,
+                               epoch=epoch,
+                               ckpt_freq=ckpt_freq)
+            
         logger.set_time_stamp(2)
-        logger.logs['generator_loss'].append(gen_loss)
+        logger.logs['loss'].append(gen_loss.item())
         logger.save_logs()
-        logger.generate_plots(generator=generator,
-                              cnn=cnn,
+        
+        logger.generate_plots(generator=generator_model,
+                              cnn=cnn_model,
                               epoch=epoch,
-                              labels="saved_models/CNN_L128_N10000/labels.json",
-                              noise_dim=args.noise_dim,
-                              bins_number=args.bins_number)
+                              noise_dim=noise_dim,
+                              bins_number=bins_number)
         logger.print_status(epoch=epoch)
 
-    tf.keras.models.save_model(generator, save_dir)
+    logger.save_checkpoint(model=generator_model, is_final_model=True)
     
-    logger.save_metadata(vars(args))
-
+    return generator_model, logger.logs
+    
 if __name__ == "__main__":
 
     parser = ArgumentParser()
@@ -76,10 +108,12 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=512)
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--bins_number", type=int, default=100)
+    parser.add_argument("--learning_rate", type=float, default=10e-3)
     parser.add_argument("--noise_dim", type=int, default=100)
     parser.add_argument("--save_dir", type=str, default="./saved_models/gan_cnn_regression")
     parser.add_argument("--ckpt_freq", type=int, default=10)
     parser.add_argument("--CNN_model_path", type=str, default="./saved_models/CNN_L128_N10000/saved-model.h5")
+    parser.add_argument("--device", type=str, default='cpu')
 
     args = parser.parse_args()
     main(args)

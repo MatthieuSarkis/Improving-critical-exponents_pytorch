@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader, random_split
 from torch import optim
 from torch import nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torchsummary import summary
+#from torchsummary import summary
 from typing import Dict, Tuple
 
 from src.CNN_regression.data import generate_data_torch
@@ -65,7 +65,7 @@ def main(args):
                                 save_dir_model=save_dir_model)
     
     if args.save_model:
-        torch.save(model.state_dict(), os.path.join(save_dir_model, 'final_model.pt'))
+        torch.save(model, os.path.join(save_dir_model, 'final_model.pt'))
 
     # Save a few logs
     if args.set_save_args:
