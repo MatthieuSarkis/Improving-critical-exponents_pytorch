@@ -45,7 +45,8 @@ def main(args):
                                   criterion=criterion,
                                   ckpt_freq=args.ckpt_freq,
                                   bins_number=args.bins_number,
-                                  device=args.device)
+                                  device=args.device,
+                                  set_generate_plots=args.set_generate_plots)
 
     logger.save_metadata(vars(args))
 
@@ -61,6 +62,7 @@ def train(epochs: int,
           ckpt_freq: int,
           bins_number: int,
           device: str,
+          set_generate_plots: bool = False,
           ) -> Tuple[nn.Module, Dict]:
     
     generator_model.train()
@@ -69,15 +71,12 @@ def train(epochs: int,
     for epoch in range(epochs):
 
         logger.set_time_stamp(1)
-
         noise = torch.randn(batch_size, noise_dim).to(device)
 
         optimizer.zero_grad()
-
         generated_images = generator_model(noise)
         generated_images = torch.sign(generated_images)
         gen_loss = generator_loss(criterion, generated_images, cnn_model)
-
         gen_loss.backward()
         optimizer.step()
 
@@ -90,11 +89,12 @@ def train(epochs: int,
         logger.logs['loss'].append(gen_loss.item())
         logger.save_logs()
         
-        logger.generate_plots(generator=generator_model,
-                              cnn=cnn_model,
-                              epoch=epoch,
-                              noise_dim=noise_dim,
-                              bins_number=bins_number)
+        if set_generate_plots:
+            logger.generate_plots(generator=generator_model,
+                                  cnn=cnn_model,
+                                  epoch=epoch,
+                                  noise_dim=noise_dim,
+                                  bins_number=bins_number)
         logger.print_status(epoch=epoch)
 
     logger.save_checkpoint(model=generator_model, is_final_model=True)
@@ -114,6 +114,11 @@ if __name__ == "__main__":
     parser.add_argument("--ckpt_freq", type=int, default=10)
     parser.add_argument("--CNN_model_path", type=str, default="./saved_models/CNN_L128_N10000/saved-model.h5")
     parser.add_argument("--device", type=str, default='cpu')
+
+    parser.add_argument('--set_generate_plots', dest='set_generate_plots', action='store_true')
+    parser.add_argument('--no-set_generate_plots', dest='set_generate_plots', action='store_false')
+    parser.set_defaults(set_generate_plots=False)
+
 
     args = parser.parse_args()
     main(args)
