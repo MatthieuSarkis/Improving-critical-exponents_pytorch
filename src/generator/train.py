@@ -23,16 +23,16 @@ def main(args):
 
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
     
+    cnn_model = torch.load(args.CNN_model_path).to(args.device)   
+    
     generator = Generator(noise_dim=args.noise_dim, 
                           learning_rate=args.learning_rate,
+                          cnn=cnn_model,
                           device=args.device,
                           save_dir=save_dir)
     
-    cnn_model = torch.load(args.CNN_model_path).to(args.device)   
-
     generator._train(epochs=args.epochs,
                      batch_size=args.batch_size,
-                     cnn_model=cnn_model,
                      ckpt_freq=args.ckpt_freq,
                      bins_number=args.bins_number,
                      set_generate_plots=args.set_generate_plots,

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Written by Adel Sohbi and Matthieu Sarkis, https://github.com/adelshb, https://github.com/MatthieuSarkis
+# Written by Matthieu Sarkis, https://github.com/MatthieuSarkis
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,6 +14,42 @@ import os
 import torch
 from typing import Dict
 import matplotlib.pyplot as plt
+
+class MSELossRegularized(torch.nn.Module):
+    
+    def __init__(self,
+                 loss_function: torch.nn.modules.loss._Loss,
+                 cnn: torch.nn.Module,
+                 wanted_output: float = 0.5928,
+                 l: float = 0.5,
+                 ) -> None:
+        
+        super(MSELossRegularized, self).__init__()
+        
+        self.wanted_output = wanted_output
+        self.loss_function = loss_function
+        self.cnn = cnn
+        self.l = l
+        self.cnn.eval()
+
+    def forward(self,
+                generated_images: torch.tensor,
+                ) -> torch.tensor:
+        
+        return self._generator_loss(generated_images)
+        
+    def _generator_loss(self, 
+                        generated_images: torch.tensor,
+                        ) -> torch.tensor:
+    
+        predicted_output = self.cnn(generated_images)
+        wanted_output_ = torch.full_like(predicted_output, self.wanted_output, dtype=torch.float32)
+
+        regularization = torch.sum(torch.full_like(generated_images, 1, dtype=torch.float32) - torch.abs(generated_images))
+        regularization *= self.l / torch.numel(generated_images)
+
+        return self.loss_function(wanted_output_, predicted_output) + regularization
+
 
 def plot_cnn_histogram(generator: torch.nn.Module,
                        cnn: torch.nn.Module,

@@ -15,7 +15,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from src.generator.logger import Logger
-
+from src.generator.utils import MSELossRegularized
 class ConvTransposeCell(nn.Module):
     
     def __init__(self,
@@ -56,15 +56,22 @@ class ConvTransposeCell(nn.Module):
 class Generator(nn.Module):
     
     def __init__(self,
+                 cnn: nn.Module,
                  noise_dim: int = 100,
                  learning_rate: float = 10e-3,
+                 l: float = 0.5,
                  device: str = 'cpu',
+                 wanted_p: float = 0.5928,
                  save_dir: str = './saved_models/gan_cnn_regression',
                  ) -> None:
         
         super(Generator, self).__init__()
         
+        self.cnn = cnn
+        self.cnn.eval()
         self.learning_rate = learning_rate
+        self.l = l
+        self.wanted_p = wanted_p
         self.save_dir = save_dir
         self.noise_dim = noise_dim
         self.logger = Logger(save_dir=self.save_dir)
@@ -83,7 +90,7 @@ class Generator(nn.Module):
                 module.apply(self._initialize_weights)
           
         self.optimizer = torch.optim.Adam(params=self.parameters(), lr=self.learning_rate)
-        self.criterion = nn.MSELoss()
+        self.criterion = MSELossRegularized(loss_function=nn.MSELoss(), cnn=self.cnn, l=self.l, wanted_output=self.wanted_p)
         self.device = device  
         self.to(self.device)
     
@@ -112,7 +119,6 @@ class Generator(nn.Module):
     def _train(self,
                epochs: int,
                batch_size: int,
-               cnn_model: torch.nn.Module,
                ckpt_freq: int,
                bins_number: int,
                set_generate_plots: bool = False,
@@ -122,7 +128,7 @@ class Generator(nn.Module):
         self.logger.initialize()
     
         self.train()
-        cnn_model.eval()
+        self.cnn.eval()
         
         for epoch in range(epochs):
 
@@ -132,12 +138,7 @@ class Generator(nn.Module):
             self.optimizer.zero_grad()
             generated_images = self(noise)
             generated_images = torch.sign(generated_images)
-            gen_loss = self._generator_loss(loss_function=self.criterion, 
-                                            generated_images=generated_images, 
-                                            cnn=cnn_model, 
-                                            device=self.device,
-                                            wanted_output=0.5928,
-                                            l=l)
+            gen_loss = self.criterion(generated_images)
             gen_loss.backward()
             self.optimizer.step()
 
@@ -152,7 +153,7 @@ class Generator(nn.Module):
             
             if set_generate_plots:
                 self.logger.generate_plots(generator=self,
-                                           cnn=cnn_model,
+                                           cnn=self.cnn,
                                            epoch=epoch,
                                            noise_dim=self.noise_dim,
                                            bins_number=bins_number)
@@ -176,3 +177,7 @@ class Generator(nn.Module):
         regularization *= l / torch.numel(generated_images)
 
         return loss_function(wanted_output_, predicted_output) + regularization
+    
+
+
+       
