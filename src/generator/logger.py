@@ -15,7 +15,6 @@ import json
 import time
 import torch
 import torch.nn as nn
-from typing import Dict
 
 from src.generator.utils import (
     plot_cnn_histogram, 
@@ -33,9 +32,6 @@ class Logger():
         Args:
             save_dir: path to the main checkpoint directory, in which the logs
                       and plots subdirectories are located
-                                  
-        Returns:
-            no value
         """
         
         self.save_dir = save_dir
@@ -49,10 +45,13 @@ class Logger():
         os.makedirs(self.save_dir_plots, exist_ok=True)
         
         self.logs: dict = {}
-        self.logs['loss'] = []
+        self.time_stamp = None
+        self.initialize()
         
+    def initialize(self) -> None:
+        
+        self.logs['loss'] = []
         self.time_stamp = [0, 0]
-        self.initial_value_portfolio = None
             
     def set_time_stamp(self,
                        i: int,
@@ -114,12 +113,3 @@ class Logger():
                     'loss': self.logs['loss'],
                     }
                 torch.save(checkpoint_dict, os.path.join(self.save_dir_ckpts, 'ckpt_{}.pt'.format(epoch)))
-
-    def save_metadata(self,
-                      args: Dict,
-                      ) -> None:
-        """Method to save the command line arguments into a json file."""
-
-        with open(os.path.join(self.save_dir, 'metadata.json'), 'w') as f:
-            json.dump(args, f,  indent=4, separators=(',', ': '))
-        

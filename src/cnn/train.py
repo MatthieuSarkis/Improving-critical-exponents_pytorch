@@ -14,152 +14,40 @@ from argparse import ArgumentParser
 from datetime import datetime
 import json
 import os
-import time
-import torch
 from torch.utils.data import DataLoader, random_split
-from torch import optim
-from torch import nn
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from typing import Dict, Tuple
 #from torchsummary import summary
 
 from src.cnn.data import generate_data_torch
-from src.cnn.network import cnn
-
+from src.cnn.network import CNN
 
 def main(args):
 
-    # Create the directory tree
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
-    
-    # Create the data
+
     X_train, y_train, X_test, y_test = generate_data_torch(args.dataset_size)
     
-    # Create the model, optimizer, loss function and callbacks 
-    model = cnn(lattice_size=args.lattice_size,
+    model = CNN(lattice_size=args.lattice_size,
                 n_conv_layers=4,
                 n_dense_layers=3,
                 n_neurons=512,
                 dropout_rate=0.0,
-                device=args.device)
+                learning_rate=10e-4,
+                device=args.device,
+                save_dir=save_dir)
     
-    optimizer = optim.Adam(params=model.parameters(), lr=args.learning_rate)
-    criterion = nn.MSELoss()
-    if args.set_lr_scheduler:
-        scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=5, verbose=False)
+    model._train(epochs=args.epochs,
+                 X_train=X_train,
+                 y_train=y_train,
+                 X_test=X_test,
+                 y_test=y_test,
+                 batch_size=args.batch_size,
+                 save_checkpoints=args.save_checkpoints)
     
-    # Training loop
-    model, loss_history = train(epochs=args.epochs,
-                                X_train=X_train,
-                                y_train=y_train,
-                                X_test=X_test,
-                                y_test=y_test,
-                                batch_size=args.batch_size,
-                                model=model,
-                                optimizer=optimizer,
-                                criterion=criterion,
-                                scheduler=scheduler,
-                                device=args.device,
-                                save_checkpoints=args.save_checkpoints,
-                                set_lr_scheduler=args.set_lr_scheduler,
-                                save_model=args.save_model,
-                                save_dir=save_dir)
-    
-    # Save a few logs
-    if args.set_save_args:
-        with open(os.path.join(save_dir, 'args.json'), 'w') as f:
-            json.dump(vars(args), f, indent=4)
+    with open(os.path.join(save_dir, 'args.json'), 'w') as f:
+        json.dump(vars(args), f, indent=4)
         
-    if args.dump_loss:
-        with open(os.path.join(save_dir, 'loss.json'), 'w') as f:
-            json.dump(loss_history, f, indent=4)
-
-
-def train(epochs: int,
-          X_train: torch.tensor,
-          y_train: torch.tensor,
-          X_test: torch.tensor,
-          y_test: torch.tensor,
-          batch_size: int,
-          model: torch.nn.Module,
-          optimizer: torch.optim.Optimizer,
-          criterion: torch.nn.modules.loss._Loss,
-          scheduler: torch.optim.lr_scheduler._LRScheduler,
-          device: str,
-          save_checkpoints: bool,
-          set_lr_scheduler: bool,
-          save_model: bool,
-          save_dir: str,
-          ) -> Tuple[cnn, Dict[list, list]]:
-    
-    save_dir_model = os.path.join(save_dir, 'model')
-    save_dir_ckpts = os.path.join(save_dir_model, 'ckpts')
-    os.makedirs(save_dir_ckpts, exist_ok=True)
-
-    loss_history = {'train': [], 'test': []}
-    
-    for epoch in range(epochs):
-        
-        initial_time = time.time()
-        
-        permutation = torch.randperm(X_train.shape[0])
-        train_loss = 0.0
-        model.train()
-        for i in range(0, X_train.shape[0], batch_size):
-
-            indices = permutation[i:i+batch_size]
-
-            inputs = X_train[indices].to(device)
-            labels = y_train[indices].to(device)
-            
-            optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            
-            optimizer.step()
-            train_loss += loss.item()
-
-        permutation = torch.randperm(X_test.shape[0])
-        test_loss = 0.0
-        model.eval()
-        for i in range(0, X_test.shape[0], batch_size):
-
-            indices = permutation[i:i+batch_size]
-
-            inputs = X_test[indices].to(device)
-            labels = y_test[indices].to(device)
-            
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            test_loss += loss.item()
-    
-        train_loss /= (X_train.shape[0]//batch_size)
-        test_loss /= (X_test.shape[0]//batch_size)
-        
-        loss_history['train'].append(train_loss)
-        loss_history['test'].append(test_loss)
-        
-        if set_lr_scheduler:
-            scheduler.step(test_loss)
-        
-        print("Epoch: {}/{}, Train Loss: {:.4f}, Test Loss: {:.4f}, Time: {:.2f}s".format(epoch+1, epochs, train_loss, test_loss, time.time()-initial_time))
-
-        if save_checkpoints:
-            checkpoint_dict = {
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'train_loss': train_loss,
-                'test_loss': test_loss,
-                }
-            torch.save(checkpoint_dict, os.path.join(save_dir_ckpts, 'ckpt_{}.pt'.format(epoch)))
-
-    if save_model:
-        torch.save(model, os.path.join(save_dir_model, 'final_model.pt'))
-
-    return model, loss_history
-
+    with open(os.path.join(save_dir, 'loss.json'), 'w') as f:
+        json.dump(model.loss_history, f, indent=4)
 
 if __name__ == '__main__':
 
@@ -174,26 +62,10 @@ if __name__ == '__main__':
     parser.add_argument("--learning_rate", type=float, default=10e-4)
     parser.add_argument("--device", type=str, default='cpu')
     
-    parser.add_argument('--set_save', dest='set_save_args', action='store_true')
-    parser.add_argument('--no-set_save_args', dest='set_save_args', action='store_false')
-    parser.set_defaults(set_save_args=True)
-    
-    parser.add_argument('--set_lr_scheduler', dest='set_lr_scheduler', action='store_true')
-    parser.add_argument('--no-set_lr_scheduler', dest='set_lr_scheduler', action='store_false')
-    parser.set_defaults(set_lr_scheduler=True)
-
     parser.add_argument('--save_checkpoints', dest='save_checkpoints', action='store_true')
     parser.add_argument('--no-save_checkpoints', dest='save_checkpoints', action='store_false')
     parser.set_defaults(save_checkpoints=True)
-
-    parser.add_argument('--save_model', dest='save_model', action='store_true')
-    parser.add_argument('--no-save_model', dest='save_model', action='store_false')
-    parser.set_defaults(save_model=True)
-
-    parser.add_argument('--dump_loss', dest='dump_loss', action='store_true')
-    parser.add_argument('--no-dump_loss', dest='dump_loss', action='store_false')
-    parser.set_defaults(dump_loss=True)
-
+    
     args = parser.parse_args()
     main(args)
 

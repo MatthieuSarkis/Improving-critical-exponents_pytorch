@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Written by Adel Sohbi and Matthieu Sarkis, https://github.com/adelshb, https://github.com/MatthieuSarkis
+# Written by Matthieu Sarkis, https://github.com/MatthieuSarkis
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,98 +14,33 @@
 from argparse import ArgumentParser
 import os
 from datetime import datetime
-
+import json
 import torch
-import torch.nn as nn
-from torch import optim
-from typing import Tuple, Dict
 
-from src.generator.network import generator
-from src.generator.utils import generator_loss
-from src.generator.logger import Logger
+from src.generator.network import Generator
 
 def main(args):
 
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
     
-    generator_model = generator(noise_dim=args.noise_dim, device=args.device)
+    generator = Generator(noise_dim=args.noise_dim, 
+                          learning_rate=args.learning_rate,
+                          device=args.device,
+                          save_dir=save_dir)
+    
     cnn_model = torch.load(args.CNN_model_path).to(args.device)   
-    optimizer = optim.Adam(params=generator_model.parameters(), lr=args.learning_rate)
-    criterion = nn.MSELoss()
-    logger = Logger(save_dir=save_dir)
 
-    generator_model, loss = train(epochs=args.epochs,
-                                  logger=logger,
-                                  batch_size=args.batch_size,
-                                  noise_dim=args.noise_dim,
-                                  generator_model=generator_model,
-                                  cnn_model=cnn_model,
-                                  optimizer=optimizer,
-                                  criterion=criterion,
-                                  ckpt_freq=args.ckpt_freq,
-                                  bins_number=args.bins_number,
-                                  device=args.device,
-                                  set_generate_plots=args.set_generate_plots,
-                                  l=args.regularization_strength)
+    generator._train(epochs=args.epochs,
+                     batch_size=args.batch_size,
+                     cnn_model=cnn_model,
+                     ckpt_freq=args.ckpt_freq,
+                     bins_number=args.bins_number,
+                     set_generate_plots=args.set_generate_plots,
+                     l=args.regularization_strength)
 
-    logger.save_metadata(vars(args))
+    with open(os.path.join(save_dir, 'args.json'), 'w') as f:
+        json.dump(vars(args), f, indent=4)
 
-
-def train(epochs: int,
-          logger: Logger,
-          batch_size: int,
-          noise_dim: int,
-          generator_model: torch.nn.Module,
-          cnn_model: torch.nn.Module,
-          optimizer: torch.optim.Optimizer,
-          criterion: torch.nn.modules.loss._Loss,
-          ckpt_freq: int,
-          bins_number: int,
-          device: str,
-          set_generate_plots: bool = False,
-          l: float = 0.5,
-          ) -> Tuple[nn.Module, Dict]:
-    
-    generator_model.train()
-    cnn_model.eval()
-    
-    for epoch in range(epochs):
-
-        logger.set_time_stamp(1)
-        noise = torch.randn(batch_size, noise_dim).to(device)
-
-        optimizer.zero_grad()
-        generated_images = generator_model(noise)
-        generated_images = torch.sign(generated_images)
-        gen_loss = generator_loss(loss_function=criterion, 
-                                  generated_images=generated_images, 
-                                  cnn=cnn_model, 
-                                  device=device,
-                                  wanted_output=0.5928,
-                                  l=l)
-        gen_loss.backward()
-        optimizer.step()
-
-        logger.save_checkpoint(model=generator_model,
-                               optimizer=optimizer,
-                               epoch=epoch,
-                               ckpt_freq=ckpt_freq)
-            
-        logger.set_time_stamp(2)
-        logger.logs['loss'].append(gen_loss.item())
-        logger.save_logs()
-        
-        if set_generate_plots:
-            logger.generate_plots(generator=generator_model,
-                                  cnn=cnn_model,
-                                  epoch=epoch,
-                                  noise_dim=noise_dim,
-                                  bins_number=bins_number)
-        logger.print_status(epoch=epoch)
-
-    logger.save_checkpoint(model=generator_model, is_final_model=True)
-    
-    return generator_model, logger.logs
     
 if __name__ == "__main__":
 
