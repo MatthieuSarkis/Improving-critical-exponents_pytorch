@@ -45,7 +45,8 @@ def main(args):
                                   ckpt_freq=args.ckpt_freq,
                                   bins_number=args.bins_number,
                                   device=args.device,
-                                  set_generate_plots=args.set_generate_plots)
+                                  set_generate_plots=args.set_generate_plots,
+                                  l=args.regularization_strength)
 
     logger.save_metadata(vars(args))
 
@@ -62,6 +63,7 @@ def train(epochs: int,
           bins_number: int,
           device: str,
           set_generate_plots: bool = False,
+          l: float = 0.5,
           ) -> Tuple[nn.Module, Dict]:
     
     generator_model.train()
@@ -75,7 +77,12 @@ def train(epochs: int,
         optimizer.zero_grad()
         generated_images = generator_model(noise)
         generated_images = torch.sign(generated_images)
-        gen_loss = generator_loss(criterion, generated_images, cnn_model, device)
+        gen_loss = generator_loss(loss_function=criterion, 
+                                  generated_images=generated_images, 
+                                  cnn=cnn_model, 
+                                  device=device,
+                                  wanted_output=0.5928,
+                                  l=l)
         gen_loss.backward()
         optimizer.step()
 
@@ -108,6 +115,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--bins_number", type=int, default=100)
     parser.add_argument("--learning_rate", type=float, default=10e-3)
+    parser.add_argument("--regularization_strength", type=float, default=0.5)
     parser.add_argument("--noise_dim", type=int, default=100)
     parser.add_argument("--save_dir", type=str, default="./saved_models/gan_cnn_regression")
     parser.add_argument("--ckpt_freq", type=int, default=10)

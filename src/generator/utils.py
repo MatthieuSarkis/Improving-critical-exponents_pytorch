@@ -18,18 +18,18 @@ import matplotlib.pyplot as plt
 def generator_loss(loss_function: torch.nn.modules.loss._Loss, 
                    generated_images: torch.tensor,
                    cnn: torch.nn.Module,
-                   wanted_output: float = 0.5928,
                    device: str = 'cpu',
+                   wanted_output: float = 0.5928,
                    l: float = 0.5,
                    ) -> torch.tensor:
     
     predicted_output = cnn(generated_images).to(device) 
-    wanted_output = torch.full(predicted_output.shape, wanted_output, dtype=torch.float32, device=device)
+    wanted_output_ = torch.full_like(predicted_output, wanted_output, dtype=torch.float32, device=device)
     
     regularization = torch.sum(torch.full_like(generated_images, 1, dtype=torch.float32, device=device) - torch.abs(generated_images))
     regularization *= l / torch.numel(generated_images)
     
-    return loss_function(wanted_output, predicted_output) + regularization
+    return loss_function(wanted_output_, predicted_output) + regularization
 
 def plot_cnn_histogram(generator: torch.nn.Module,
                        cnn: torch.nn.Module,
