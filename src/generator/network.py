@@ -160,24 +160,3 @@ class Generator(nn.Module):
             self.logger.print_status(epoch=epoch)
 
         self.logger.save_checkpoint(model=self, is_final_model=True)
-        
-    @staticmethod 
-    def _generator_loss(loss_function: torch.nn.modules.loss._Loss, 
-                        generated_images: torch.tensor,
-                        cnn: torch.nn.Module,
-                        device: str = 'cpu',
-                        wanted_output: float = 0.5928,
-                        l: float = 0.5,
-                        ) -> torch.tensor:
-    
-        predicted_output = cnn(generated_images).to(device) 
-        wanted_output_ = torch.full_like(predicted_output, wanted_output, dtype=torch.float32, device=device)
-
-        regularization = torch.sum(torch.full_like(generated_images, 1, dtype=torch.float32, device=device) - torch.abs(generated_images))
-        regularization *= l / torch.numel(generated_images)
-
-        return loss_function(wanted_output_, predicted_output) + regularization
-    
-
-
-       
