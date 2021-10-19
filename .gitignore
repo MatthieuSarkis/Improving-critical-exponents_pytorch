@@ -12,6 +12,7 @@ saved_files/
 job.sh
 job_cnn.sh
 job_gan.sh
+job_gen.sh
 *.egg-info/
 build/
 dist/
