@@ -82,6 +82,10 @@ class CNN(nn.Module):
                  save_dir: str = './saved_models/cnn_regression',
                  ) -> None:
 
+        self.constructor_args = locals()
+        del self.constructor_args['self']
+        del self.constructor_args['__class__']
+
         super(CNN, self).__init__()
         
         self.learning_rate = learning_rate
@@ -205,6 +209,7 @@ class CNN(nn.Module):
             if save_checkpoints:
                 checkpoint_dict = {
                     'epoch': epoch,
+                    'constructor_args': self.constructor_args,
                     'model_state_dict': self.state_dict(),
                     'optimizer_state_dict': self.state_dict(),
                     'train_loss': train_loss,
@@ -212,4 +217,8 @@ class CNN(nn.Module):
                     }
                 torch.save(checkpoint_dict, os.path.join(self.save_dir_ckpts, 'ckpt_{}.pt'.format(epoch)))
 
-        torch.save(self, os.path.join(self.save_dir_model, 'final_model.pt'))
+        checkpoint_dict = {
+                    'constructor_args': self.constructor_args,
+                    'model_state_dict': self.state_dict(),
+                    }
+        torch.save(checkpoint_dict, os.path.join(self.save_dir_model, 'final_model.pt'))

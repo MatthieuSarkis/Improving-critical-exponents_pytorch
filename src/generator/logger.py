@@ -96,20 +96,23 @@ class Logger():
      
     def save_checkpoint(self,
                         model: nn.Module,
-                        optimizer: torch.optim.Optimizer = None,
                         epoch: int = None,
-                        ckpt_freq: int = None,
                         is_final_model: bool = False):
         
         if is_final_model:
-            torch.save(model, os.path.join(self.save_dir_model, 'final_model.pt'))
-        
+            checkpoint_dict = {
+                'constructor_args': model.constructor_args,
+                'model_state_dict': model.state_dict(),
+                }
+            torch.save(checkpoint_dict, os.path.join(self.save_dir_model, 'final_model.pt')) 
+                   
         else:
-            if (epoch + 1) % ckpt_freq == 0:
+            if (epoch + 1) % 10 == 0:
                 checkpoint_dict = {
                     'epoch': epoch,
+                    'constructor_args': model.constructor_args,
                     'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
+                    'optimizer_state_dict': model.optimizer.state_dict(),
                     'loss': self.logs['loss'],
                     }
                 torch.save(checkpoint_dict, os.path.join(self.save_dir_ckpts, 'ckpt_{}.pt'.format(epoch)))

@@ -64,6 +64,10 @@ class Generator(nn.Module):
                  wanted_p: float = 0.5928,
                  save_dir: str = './saved_models/gan_cnn_regression',
                  ) -> None:
+
+        self.constructor_args = locals()
+        del self.constructor_args['self']
+        del self.constructor_args['__class__']
         
         super(Generator, self).__init__()
         
@@ -119,7 +123,6 @@ class Generator(nn.Module):
     def _train(self,
                epochs: int,
                batch_size: int,
-               ckpt_freq: int,
                bins_number: int,
                set_generate_plots: bool = False,
                l: float = 0.5,
@@ -143,9 +146,7 @@ class Generator(nn.Module):
             self.optimizer.step()
 
             self.logger.save_checkpoint(model=self,
-                                        optimizer=self.optimizer,
-                                        epoch=epoch,
-                                        ckpt_freq=ckpt_freq)
+                                        epoch=epoch)
                 
             self.logger.set_time_stamp(2)
             self.logger.logs['loss'].append(gen_loss.item())

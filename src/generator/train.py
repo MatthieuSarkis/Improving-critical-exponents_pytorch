@@ -17,13 +17,16 @@ from datetime import datetime
 import json
 import torch
 
+from src.cnn.network import CNN
 from src.generator.network import Generator
 
 def main(args):
 
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
     
-    cnn = torch.load(args.CNN_model_path).to(args.device)   
+    cnn_checkpoint = torch.load(args.CNN_model_path)
+    cnn = CNN(**cnn_checkpoint['constructor_args'])   
+    cnn.load_state_dict(cnn_checkpoint['model_state_dict'])
     
     generator = Generator(noise_dim=args.noise_dim, 
                           learning_rate=args.learning_rate,
@@ -33,7 +36,6 @@ def main(args):
     
     generator._train(epochs=args.epochs,
                      batch_size=args.batch_size,
-                     ckpt_freq=args.ckpt_freq,
                      bins_number=args.bins_number,
                      set_generate_plots=args.set_generate_plots,
                      l=args.regularization_strength)
@@ -53,7 +55,6 @@ if __name__ == "__main__":
     parser.add_argument("--regularization_strength", type=float, default=0.5)
     parser.add_argument("--noise_dim", type=int, default=100)
     parser.add_argument("--save_dir", type=str, default="./saved_models/gan_cnn_regression")
-    parser.add_argument("--ckpt_freq", type=int, default=10)
     parser.add_argument("--CNN_model_path", type=str, default="./saved_models/cnn_regression/2021.10.17.18.29.07/model/final_model.pt")
     parser.add_argument("--device", type=str, default='cpu')
 
