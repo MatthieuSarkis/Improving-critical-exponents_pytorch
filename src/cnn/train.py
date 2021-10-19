@@ -14,7 +14,7 @@ from argparse import ArgumentParser
 from datetime import datetime
 import json
 import os
-from torch.utils.data import DataLoader, random_split
+#from torch.utils.data import DataLoader, random_split
 #from torchsummary import summary
 
 from src.cnn.data import generate_data_torch

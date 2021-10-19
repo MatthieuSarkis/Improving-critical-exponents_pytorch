@@ -65,7 +65,7 @@ class Logger():
                      ) -> None:
         """Method to print on the status of the run on the standard output"""
         
-        print('    - Episode: {:<13d} | Loss: {:<13.2f} | Duration in seconds: {:<13.2f}'.format(epoch, 
+        print('    - Episode: {:<13d} | Loss: {:<13.6f} | Duration in seconds: {:<13.2f}'.format(epoch, 
                                                                                               self.logs["loss"][-1], 
                                                                                               self.time_stamp[1]-self.time_stamp[0]))
     
