@@ -207,11 +207,11 @@ class CNN(nn.Module):
             print("Epoch: {}/{}, Train Loss: {:.6f}, Test Loss: {:.6f}, Time: {:.2f}s".format(epoch+1, epochs, train_loss, test_loss, time.time()-initial_time))
 
             if save_checkpoints:
-
-                if (epoch % 10) == 0:
+                if ((epoch+1) % 10) == 0:
                     checkpoint_dict = {
                         'epoch': epoch,
                         'model_state_dict': self.state_dict(),
+                        'constructor_args': self.constructor_args,
                         'optimizer_state_dict': self.state_dict(),
                         'train_loss': train_loss,
                         'test_loss': test_loss,

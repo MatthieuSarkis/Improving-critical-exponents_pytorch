@@ -107,7 +107,7 @@ class Logger():
             torch.save(checkpoint_dict, os.path.join(self.save_dir_model, 'final_model.pt')) 
                    
         else:
-            if (epoch + 1) % 10 == 0:
+            if (epoch+1) % 10 == 0:
                 checkpoint_dict = {
                     'epoch': epoch,
                     'constructor_args': model.constructor_args,
