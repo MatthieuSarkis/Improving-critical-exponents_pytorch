@@ -157,6 +157,7 @@ class Generator(nn.Module):
                                            noise_dim=self.noise_dim,
                                            bins_number=bins_number)
                 
-            self.logger.print_status(epoch=epoch)
+            self.logger.print_status(epoch=epoch,
+                                     epochs=epochs)
 
         self.logger.save_checkpoint(model=self, is_final_model=True)

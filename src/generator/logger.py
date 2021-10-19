@@ -62,12 +62,11 @@ class Logger():
                             
     def print_status(self,
                      epoch: int,
+                     epochs: int,
                      ) -> None:
         """Method to print on the status of the run on the standard output"""
         
-        print('    - Episode: {:<13d} | Loss: {:<13.6f} | Duration in seconds: {:<13.2f}'.format(epoch, 
-                                                                                              self.logs["loss"][-1], 
-                                                                                              self.time_stamp[1]-self.time_stamp[0]))
+        print('Epoch: {}/{}, Loss: {:.6f}, Time: {:.2f}s'.format(epoch+1, epochs, self.logs["loss"][-1], self.time_stamp[1]-self.time_stamp[0]))
     
     def save_logs(self) -> None:
         """Saves all the necessary logs to 'save_dir_logs' directory."""
