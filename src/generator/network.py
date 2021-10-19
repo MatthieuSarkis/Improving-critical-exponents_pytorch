@@ -145,9 +145,7 @@ class Generator(nn.Module):
             gen_loss.backward()
             self.optimizer.step()
 
-            self.logger.save_checkpoint(model=self,
-                                        epoch=epoch)
-                
+            self.logger.save_checkpoint(model=self, epoch=epoch)
             self.logger.set_time_stamp(2)
             self.logger.logs['loss'].append(gen_loss.item())
             self.logger.save_logs()
@@ -158,6 +156,7 @@ class Generator(nn.Module):
                                            epoch=epoch,
                                            noise_dim=self.noise_dim,
                                            bins_number=bins_number)
+                
             self.logger.print_status(epoch=epoch)
 
         self.logger.save_checkpoint(model=self, is_final_model=True)
