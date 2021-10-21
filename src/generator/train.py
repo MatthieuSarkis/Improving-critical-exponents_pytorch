@@ -25,20 +25,21 @@ def main(args):
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
     
     cnn_checkpoint = torch.load(args.CNN_model_path)
+    cnn_checkpoint['device'] = args.device
     cnn = CNN(**cnn_checkpoint['constructor_args'])   
     cnn.load_state_dict(cnn_checkpoint['model_state_dict'])
     
     generator = Generator(noise_dim=args.noise_dim, 
                           learning_rate=args.learning_rate,
                           cnn=cnn,
+                          l=args.regularization_strength,
                           device=args.device,
                           save_dir=save_dir)
     
     generator._train(epochs=args.epochs,
                      batch_size=args.batch_size,
                      bins_number=args.bins_number,
-                     set_generate_plots=args.set_generate_plots,
-                     l=args.regularization_strength)
+                     set_generate_plots=args.set_generate_plots)
 
     with open(os.path.join(save_dir, 'args.json'), 'w') as f:
         json.dump(vars(args), f, indent=4)

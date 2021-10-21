@@ -42,24 +42,35 @@ class ConvTransposeCell(nn.Module):
                                          dilation=1)
         self.bn2 = nn.BatchNorm2d(output_dim) 
 
+        #for module in self.modules():
+        #    module.apply(self._initialize_weights)
+
     def forward(self,
                 x: torch.tensor,
                 ) -> torch.tensor:
         
         x = self.convt1(x)
+        x = F.leaky_relu_(x)
         x = self.bn1(x)
-        x = F.leaky_relu_(x)
         x = self.convt2(x)
-        x = self.bn2(x)
         x = F.leaky_relu_(x)
+        x = self.bn2(x)
         return x
+    
+    @staticmethod 
+    def _initialize_weights(module: torch.nn.Module) -> None:
+        if type(module) == nn.ConvTranspose2d:
+            nn.init.kaiming_normal_(module.weight)
+        elif type(module) == nn.BatchNorm2d:
+            nn.init.normal_(module.weight, mean=1, std=0.02)
+            
 class Generator(nn.Module):
     
     def __init__(self,
                  cnn: nn.Module,
                  noise_dim: int = 100,
-                 learning_rate: float = 10e-3,
-                 l: float = 0.5,
+                 learning_rate: float = 10e-4,
+                 l: float = 1.0,
                  device: str = 'cpu',
                  wanted_p: float = 0.5928,
                  save_dir: str = './saved_models/gan_cnn_regression',
@@ -82,50 +93,42 @@ class Generator(nn.Module):
         
         self.linear = nn.Linear(noise_dim, 2*2*256)
         self.bn = nn.BatchNorm1d(2*2*256)
-        
         convt_block = []
         for i in reversed(range(4, 9)):
             convt_block.append(ConvTransposeCell(2**i, 2**(i-1)))
         convt_block.append(nn.ConvTranspose2d(in_channels=8, out_channels=1, kernel_size=3, stride=2, padding=1, output_padding=1, dilation=1))
+        convt_block.append(nn.BatchNorm2d(1))
         self.convt_block = nn.Sequential(*convt_block)
-    
-        for module in self.modules():
-            if not isinstance(module, nn.Sequential):
-                module.apply(self._initialize_weights)
+         
+        #for module in self.modules():
+        #    if not isinstance(module, nn.Sequential) and not isinstance(module, ConvTransposeCell):
+        #        module.apply(self._initialize_weights)
           
         self.optimizer = torch.optim.Adam(params=self.parameters(), lr=self.learning_rate)
-        self.criterion = MSELossRegularized(loss_function=nn.MSELoss(), cnn=self.cnn, l=self.l, wanted_output=self.wanted_p)
+        self.criterion = MSELossRegularized(loss_function=nn.MSELoss(), 
+                                            #loss_function=nn.L1Loss(),
+                                            cnn=self.cnn, l=self.l, wanted_output=self.wanted_p)
         self.device = device  
         self.to(self.device)
     
     def forward(self,
-                x: torch.tensor):
+                x: torch.tensor,
+                ) -> torch.tensor:
         
         x = x.to(self.device)
-        x = F.leaky_relu(self.bn(self.linear(x)), inplace=True)
+        x = self.linear(x)
+        x = F.leaky_relu_(x)
+        x = self.bn(x)
         x = x.view(-1, 256, 2, 2)
         x = self.convt_block(x)
-        x = torch.tanh(x)
+        x = (lambda y: torch.tanh(2.0 * y))(x)
         return x
-
-    @staticmethod 
-    def _initialize_weights(module: torch.nn.Module) -> None:
-        """Xavier initialization of the weights in the Linear and Convolutional layers of a torch.nn.Module object.
-
-        Args:
-            module (torch.nn.Module): module whose weights are to be initialized
-        """
-
-        if type(module) == nn.Linear or type(module) == nn.Conv2d or type(module) == nn.ConvTranspose2d:
-            nn.init.xavier_uniform_(module.weight)
-            module.bias.data.fill_(1e-2)
 
     def _train(self,
                epochs: int,
                batch_size: int,
                bins_number: int,
                set_generate_plots: bool = False,
-               l: float = 0.5,
                ) -> None:
     
         self.logger.initialize()
@@ -140,9 +143,9 @@ class Generator(nn.Module):
 
             self.optimizer.zero_grad()
             generated_images = self(noise)
-            generated_images = torch.sign(generated_images)
             gen_loss = self.criterion(generated_images)
             gen_loss.backward()
+            #print(torch.max(self.linear.weight.grad))
             self.optimizer.step()
 
             self.logger.save_checkpoint(model=self, epoch=epoch)
@@ -161,3 +164,13 @@ class Generator(nn.Module):
                                      epochs=epochs)
 
         self.logger.save_checkpoint(model=self, is_final_model=True)
+        
+    @staticmethod 
+    def _initialize_weights(module: torch.nn.Module) -> None:
+        if type(module) == nn.Linear:
+            nn.init.kaiming_normal_(module.weight)
+        elif type(module) == nn.BatchNorm2d or type(module) == nn.BatchNorm1d:
+            nn.init.normal_(module.weight, mean=1, std=0.02)
+        elif type(module) == nn.ConvTranspose2d:
+            nn.init.xavier_normal_(module.weight)
+        
