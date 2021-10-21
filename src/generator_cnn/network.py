@@ -14,8 +14,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.generator.logger import Logger
-from src.generator.utils import MSELossRegularized
+from src.generator_cnn.logger import Logger
+from src.generator_cnn.utils import MSELossRegularized
 class ConvTransposeCell(nn.Module):
     
     def __init__(self,

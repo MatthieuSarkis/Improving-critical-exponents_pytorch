@@ -16,7 +16,7 @@ import time
 import torch
 import torch.nn as nn
 
-from src.generator.utils import (
+from src.generator_cnn.utils import (
     plot_cnn_histogram, 
     plot_losses,
 )
@@ -50,7 +50,8 @@ class Logger():
         
     def initialize(self) -> None:
         
-        self.logs['loss'] = []
+        self.logs['generator_loss'] = []
+        self.logs['discriminator_loss'] = []
         self.time_stamp = [0, 0]
             
     def set_time_stamp(self,
@@ -66,7 +67,7 @@ class Logger():
                      ) -> None:
         """Method to print on the status of the run on the standard output"""
         
-        print('Epoch: {}/{}, Loss: {:.6f}, Time: {:.2f}s'.format(epoch+1, epochs, self.logs["loss"][-1], self.time_stamp[1]-self.time_stamp[0]))
+        print('Epoch: {}/{}, Generator Loss: {:.6f}, Discriminator Loss: {:.6f}, Time: {:.2f}s'.format(epoch+1, epochs, self.logs["generator_loss"][-1], self.logs["discriminator_loss"][-1], self.time_stamp[1]-self.time_stamp[0]))
     
     def save_logs(self) -> None:
         """Saves all the necessary logs to 'save_dir_logs' directory."""
@@ -101,7 +102,8 @@ class Logger():
         if is_final_model:
             checkpoint_dict = {
                 'constructor_args': model.constructor_args,
-                'model_state_dict': model.state_dict(),
+                'generator_state_dict': model.generator.state_dict(),
+                'discriminator_state_dict': model.discriminator.state_dict(),
                 }
             torch.save(checkpoint_dict, os.path.join(self.save_dir_model, 'final_model.pt')) 
                    
@@ -110,8 +112,11 @@ class Logger():
                 checkpoint_dict = {
                     'epoch': epoch,
                     'constructor_args': model.constructor_args,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': model.optimizer.state_dict(),
-                    'loss': self.logs['loss'],
+                    'generator_state_dict': model.generator.state_dict(),
+                    'discriminator_state_dict': model.discriminator.state_dict(),
+                    'generator_optimizer_state_dict': model.generator_optimizer.state_dict(),
+                    'discriminator_optimizer_state_dict': model.discriminator_optimizer.state_dict(),
+                    'generator_loss': self.logs['generator_loss'],
+                    'discriminator_loss': self.logs['discriminator_loss'],
                     }
                 torch.save(checkpoint_dict, os.path.join(self.save_dir_ckpts, 'ckpt_{}.pt'.format(epoch)))

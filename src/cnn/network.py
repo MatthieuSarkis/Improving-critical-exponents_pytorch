@@ -110,9 +110,9 @@ class CNN(nn.Module):
         dense_block.append(nn.Sigmoid())
         self.dense_block = nn.Sequential(*dense_block)
         
-        for module in self.modules():
-            if not isinstance(module, nn.Sequential):
-                module.apply(self._initialize_weights)
+        #for module in self.modules():
+        #    if not isinstance(module, nn.Sequential):
+        #        module.apply(self._initialize_weights)
         
         self.device = device
         self.optimizer = torch.optim.Adam(params=self.parameters(), lr=self.learning_rate)

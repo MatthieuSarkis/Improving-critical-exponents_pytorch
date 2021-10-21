@@ -18,7 +18,7 @@ import json
 import torch
 
 from src.cnn.network import CNN
-from src.generator.network import Generator
+from src.generator_cnn.network import Generator
 
 def main(args):
 
@@ -44,7 +44,6 @@ def main(args):
     with open(os.path.join(save_dir, 'args.json'), 'w') as f:
         json.dump(vars(args), f, indent=4)
 
-    
 if __name__ == "__main__":
 
     parser = ArgumentParser()
