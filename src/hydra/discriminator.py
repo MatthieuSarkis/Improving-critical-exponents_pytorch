@@ -32,7 +32,7 @@ class ConvCell(nn.Module):
                 ) -> torch.tensor:
         
         x = self.conv(x)
-        x = self.bn1(x)
+        x = self.bn(x)
         x = F.leaky_relu_(x)
         return x
 
@@ -50,7 +50,7 @@ class Discriminator(nn.Module):
         self.L = lattice_size
         self.device = device
         
-        conv_block = []
+        conv_block = [ConvCell(input_dim=1, output_dim=64)]
         for i in range(n_conv_cells):
             conv_block.append(ConvCell(input_dim=64*2**i, output_dim=64*2**(i+1)))
         self.conv_block = nn.Sequential(*conv_block)

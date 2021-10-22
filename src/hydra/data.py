@@ -10,12 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+import os
 import numpy as np
 import torch
 
 from src.statphy.models.percolation import percolation_configuration
 
-def generate_data_torch(dataset_size, lattice_size=128):
+def generate_data_torch(dataset_size, lattice_size=128, save_dir=None):
 
     X = []
     y = []
@@ -26,5 +27,9 @@ def generate_data_torch(dataset_size, lattice_size=128):
 
     X = torch.tensor(X).float().unsqueeze(1)
     y = torch.tensor(y).float().view(-1, 1)
+    
+    if save_dir is not None:
+        torch.save(X, os.path.join(save_dir, 'images.pt'))
+        torch.save(y, os.path.join(save_dir, 'labels.pt'))
     
     return X, y

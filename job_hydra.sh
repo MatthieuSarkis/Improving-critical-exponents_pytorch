@@ -1,9 +1,9 @@
 python src/hydra/train.py \
     --lattice_size 128 \
-    --dataset_size 50 \
+    --dataset_size 100 \
     --batch_size 10 \
-    --epochs 5 \
-    --n_conv_cells 4 \
+    --epochs 10 \
+    --n_conv_cells 3 \
     --bins_number 100 \
     --generator_learning_rate 10e-3 \
     --discriminator_learning_rate 10e-3 \
