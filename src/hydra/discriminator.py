@@ -39,6 +39,7 @@ class Discriminator(nn.Module):
                 x: torch.tensor,
                 ) -> torch.tensor:
         
+        x = x.to(self.device)
         x = self.conv1(x)
         x = F.leaky_relu_(x)
         x = self.bn1(x)
