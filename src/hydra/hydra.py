@@ -46,7 +46,7 @@ class Hydra():
         self.logger = Logger(save_dir=save_dir)
         self.generator = Generator(noise_dim=noise_dim, device=device)
         self.discriminator = Discriminator(lattice_size=lattice_size, device=device)
-        self.cnn = cnn
+        self.cnn = cnn.to(self.device)
         self.cnn.eval()
         
         self.generator_optimizer = torch.optim.Adam(params=self.generator.parameters(), lr=self.learning_rate)
@@ -110,7 +110,7 @@ class Hydra():
                 
                 for _ in range(2):
                     
-                    noise = torch.randn(batch_size, self.noise_dim)
+                    noise = torch.randn(batch_size, self.noise_dim, device=self.device)
                     fake_images_batch = self.generator(noise)
                     
                     fake_output = self.discriminator(fake_images_batch).view(-1,)

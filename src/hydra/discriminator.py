@@ -33,7 +33,7 @@ class Discriminator(nn.Module):
         self.linear = nn.Linear(in_features=self._get_dimension(), out_features=1)
         self.bn3 = nn.BatchNorm1d(1)
     
-        self.to(device)
+        self.to(self.device)
     
     def forward(self,
                 x: torch.tensor,
@@ -54,7 +54,7 @@ class Discriminator(nn.Module):
         
     def _get_dimension(self) -> int:
         
-        x = torch.zeros((1, 1, self.L, self.L))
+        x = torch.zeros((1, 1, self.L, self.L), device=self.device)
         x = self.conv1(x)
         x = self.conv2(x)
         return int(torch.numel(x))   
