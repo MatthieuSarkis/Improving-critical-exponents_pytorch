@@ -34,6 +34,7 @@ def main(args):
     model = Hydra(cnn=cnn,
                   lattice_size=args.lattice_size,
                   noise_dim=args.noise_dim,
+                  n_conv_cells=args.n_conv_cells,
                   generator_learning_rate=args.generator_learning_rate,
                   discriminator_learning_rate=args.discriminator_learning_rate,
                   l1=args.regularization_strength,
@@ -59,6 +60,7 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_size", type=int, default=5000)
     parser.add_argument("--batch_size", type=int, default=512)
     parser.add_argument("--epochs", type=int, default=200)
+    parser.add_argument("--n_conv_cells", type=int, default=3)
     parser.add_argument("--bins_number", type=int, default=100)
     parser.add_argument("--generator_learning_rate", type=float, default=10e-3)
     parser.add_argument("--discriminator_learning_rate", type=float, default=10e-3)

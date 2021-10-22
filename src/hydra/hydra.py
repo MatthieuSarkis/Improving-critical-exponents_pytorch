@@ -24,6 +24,7 @@ class Hydra():
                  cnn: nn.Module,
                  lattice_size: int = 128,
                  noise_dim: int = 100,
+                 n_conv_cells: int = 3,
                  generator_learning_rate: float = 10e-4,
                  discriminator_learning_rate: float = 10e-3,
                  l1: float = 1.0,
@@ -47,7 +48,7 @@ class Hydra():
         
         self.logger = Logger(save_dir=save_dir)
         self.generator = Generator(noise_dim=noise_dim, device=device)
-        self.discriminator = Discriminator(lattice_size=lattice_size, device=device)
+        self.discriminator = Discriminator(lattice_size=lattice_size, n_conv_cells=n_conv_cells, device=device)
         self.cnn = cnn.to(self.device)
         self.cnn.eval()
         

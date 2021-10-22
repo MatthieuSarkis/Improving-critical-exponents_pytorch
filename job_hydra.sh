@@ -2,9 +2,11 @@ python src/hydra/train.py \
     --lattice_size 128 \
     --dataset_size 50 \
     --batch_size 10 \
-    --epochs 2 \
+    --epochs 5 \
+    --n_conv_cells 4 \
     --bins_number 100 \
-    --learning_rate 10e-3 \
+    --generator_learning_rate 10e-3 \
+    --discriminator_learning_rate 10e-3 \
     --regularization_strength 1.0 \
     --discriminator_cnn_ratio 1.0 \
     --noise_dim 100 \
