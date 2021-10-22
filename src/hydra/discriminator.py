@@ -18,7 +18,7 @@ class Discriminator(nn.Module):
     
     def __init__(self,
                  lattice_size: int = 128,
-                 device: str = 'cpu',
+                 device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
                  ) -> None:
         
         super(Discriminator, self).__init__()
@@ -32,9 +32,9 @@ class Discriminator(nn.Module):
         self.bn2 = nn.BatchNorm2d(128)
         self.linear = nn.Linear(in_features=self._get_dimension(), out_features=1)
         self.bn3 = nn.BatchNorm1d(1)
-    
+  
         self.to(self.device)
-    
+  
     def forward(self,
                 x: torch.tensor,
                 ) -> torch.tensor:
@@ -54,7 +54,7 @@ class Discriminator(nn.Module):
         
     def _get_dimension(self) -> int:
         
-        x = torch.zeros((1, 1, self.L, self.L), device=self.device)
+        x = torch.zeros((1, 1, self.L, self.L))
         x = self.conv1(x)
         x = self.conv2(x)
         return int(torch.numel(x))   

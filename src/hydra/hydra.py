@@ -24,10 +24,11 @@ class Hydra():
                  cnn: nn.Module,
                  lattice_size: int = 128,
                  noise_dim: int = 100,
-                 learning_rate: float = 10e-4,
+                 generator_learning_rate: float = 10e-4,
+                 discriminator_learning_rate: float = 10e-3,
                  l1: float = 1.0,
                  l2: float = 1.0,
-                 device: str = 'cpu',
+                 device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
                  wanted_p: float = 0.5928,
                  save_dir: str = './saved_models/hydra',
                  ) -> None:
@@ -40,7 +41,8 @@ class Hydra():
         
         self.device = device
         self.noise_dim = noise_dim
-        self.learning_rate = learning_rate
+        self.generator_learning_rate = generator_learning_rate
+        self.discriminator_learning_rate = discriminator_learning_rate
         self.l2 = l2
         
         self.logger = Logger(save_dir=save_dir)
@@ -49,8 +51,8 @@ class Hydra():
         self.cnn = cnn.to(self.device)
         self.cnn.eval()
         
-        self.generator_optimizer = torch.optim.Adam(params=self.generator.parameters(), lr=self.learning_rate)
-        self.discriminator_optimizer = torch.optim.Adam(params=self.discriminator.parameters(), lr=self.learning_rate)
+        self.generator_optimizer = torch.optim.Adam(params=self.generator.parameters(), lr=self.generator_learning_rate)
+        self.discriminator_optimizer = torch.optim.Adam(params=self.discriminator.parameters(), lr=self.discriminator_learning_rate)
         self.cnn_criterion = MSELossRegularized(loss_function=nn.MSELoss(), cnn=self.cnn, l=l1, wanted_output=wanted_p)
         self.bce_criterion = nn.BCELoss()
         
@@ -90,8 +92,8 @@ class Hydra():
                 fake_output = self.discriminator(fake_images_batch).view(-1,)
                 real_output = self.discriminator(real_images_batch).view(-1,)
                 
-                fake_label = torch.full((batch_size,), 0.0, dtype=torch.float, device=self.device)
-                real_label = torch.full((batch_size,), 1.0, dtype=torch.float, device=self.device)
+                fake_label = torch.full((fake_output.shape[0],), 0.0, dtype=torch.float, device=self.device)
+                real_label = torch.full((real_output.shape[0],), 1.0, dtype=torch.float, device=self.device)
                 
                 self.discriminator_optimizer.zero_grad()
                 
@@ -120,7 +122,7 @@ class Hydra():
                     
                     bce_loss = self.bce_criterion(fake_output, fake_label)
                     cnn_loss = self.cnn_criterion(fake_images_batch)
-                    gen_loss = 0.5 * (bce_loss + self.l2 * cnn_loss)
+                    gen_loss = bce_loss + self.l2 * cnn_loss
                     
                     gen_loss.backward()
                     self.generator_optimizer.step()

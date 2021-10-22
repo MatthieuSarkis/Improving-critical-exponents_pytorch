@@ -56,7 +56,7 @@ class Generator(nn.Module):
     
     def __init__(self,
                  noise_dim: int = 100,
-                 device: str = 'cpu',
+                 device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
                  ) -> None:
 
         self.constructor_args = locals()
@@ -65,6 +65,8 @@ class Generator(nn.Module):
         
         super(Generator, self).__init__()
             
+        self.device = device  
+        self.to(self.device)
         self.linear = nn.Linear(noise_dim, 2*2*256)
         self.bn = nn.BatchNorm1d(2*2*256)
         convt_block = []
@@ -73,10 +75,7 @@ class Generator(nn.Module):
         convt_block.append(nn.ConvTranspose2d(in_channels=8, out_channels=1, kernel_size=3, stride=2, padding=1, output_padding=1, dilation=1))
         convt_block.append(nn.BatchNorm2d(1))
         self.convt_block = nn.Sequential(*convt_block)
-                
-        self.device = device  
-        self.to(self.device)
-    
+                 
     def forward(self,
                 x: torch.tensor,
                 ) -> torch.tensor:

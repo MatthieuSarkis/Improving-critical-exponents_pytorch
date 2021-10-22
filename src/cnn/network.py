@@ -78,7 +78,7 @@ class CNN(nn.Module):
                  n_neurons: int = 512, 
                  dropout_rate: float = 0.0,
                  learning_rate: float = 10e-4,
-                 device: str = 'cpu',
+                 device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
                  save_dir: str = './saved_models/cnn_regression',
                  ) -> None:
 
@@ -88,6 +88,7 @@ class CNN(nn.Module):
 
         super(CNN, self).__init__()
         
+        self.device = device
         self.learning_rate = learning_rate
         self.L = lattice_size
         self.save_dir = save_dir
@@ -114,13 +115,11 @@ class CNN(nn.Module):
         #    if not isinstance(module, nn.Sequential):
         #        module.apply(self._initialize_weights)
         
-        self.device = device
         self.optimizer = torch.optim.Adam(params=self.parameters(), lr=self.learning_rate)
         self.criterion = nn.MSELoss()
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='max', factor=0.5, patience=5, verbose=False)
-        
         self.to(self.device)
-
+        
     def _get_dimension(self) -> int:
         
         x = torch.zeros((1, 1, self.L, self.L))
