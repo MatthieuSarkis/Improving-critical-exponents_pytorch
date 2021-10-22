@@ -72,7 +72,7 @@ class Logger():
     def save_logs(self) -> None:
         """Saves all the necessary logs to 'save_dir_logs' directory."""
         
-        with open(os.path.join(self.save_dir, 'logs.json'), 'w') as f:
+        with open(os.path.join(self.save_dir_logs, 'logs.json'), 'w') as f:
             json.dump(self.logs, f,  indent=4, separators=(',', ': '))
         
     def generate_plots(self,

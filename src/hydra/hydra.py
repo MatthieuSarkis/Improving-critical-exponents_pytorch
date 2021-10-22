@@ -29,8 +29,12 @@ class Hydra():
                  l2: float = 1.0,
                  device: str = 'cpu',
                  wanted_p: float = 0.5928,
-                 save_dir: str = './saved_models/gan_cnn_regression',
+                 save_dir: str = './saved_models/hydra',
                  ) -> None:
+
+        self.constructor_args = locals()
+        del self.constructor_args['self']
+        del self.constructor_args['__class__']
         
         super(Hydra, self).__init__()
         
@@ -40,24 +44,18 @@ class Hydra():
         self.l2 = l2
         
         self.logger = Logger(save_dir=save_dir)
-        
-        self.generator = Generator(cnn=cnn,
-                                   noise_dim=noise_dim,
-                                   device=device)
-        
-        self.discriminator = Discriminator(lattice_size=lattice_size,
-                                           device=device)
-        
+        self.generator = Generator(noise_dim=noise_dim, device=device)
+        self.discriminator = Discriminator(lattice_size=lattice_size, device=device)
         self.cnn = cnn
         self.cnn.eval()
         
-        self.generator_optimizer = torch.optim.Adam(params=self.parameters(), lr=self.learning_rate)
-        self.discriminator_optimizer = torch.optim.Adam(params=self.parameters(), lr=self.learning_rate)
-        
+        self.generator_optimizer = torch.optim.Adam(params=self.generator.parameters(), lr=self.learning_rate)
+        self.discriminator_optimizer = torch.optim.Adam(params=self.discriminator.parameters(), lr=self.learning_rate)
         self.cnn_criterion = MSELossRegularized(loss_function=nn.MSELoss(), cnn=self.cnn, l=l1, wanted_output=wanted_p)
         self.bce_criterion = nn.BCELoss()
         
-        self.to(device)
+        self.generator.to(self.device)
+        self.discriminator.to(self.device)
         
     def _train(self,
                epochs: int,
@@ -89,15 +87,15 @@ class Hydra():
                 fake_images_batch = self.generator(noise)
                 real_images_batch = real_images[indices].to(self.device)
                 
-                fake_output = self.discriminator(fake_images_batch)
-                real_output = self.discriminator(real_images_batch)
+                fake_output = self.discriminator(fake_images_batch).view(-1,)
+                real_output = self.discriminator(real_images_batch).view(-1,)
                 
                 fake_label = torch.full((batch_size,), 0.0, dtype=torch.float, device=self.device)
                 real_label = torch.full((batch_size,), 1.0, dtype=torch.float, device=self.device)
                 
                 self.discriminator_optimizer.zero_grad()
                 
-                fake_gan_loss = self.bce_criterion(fake_output, fake_label)
+                fake_gan_loss = self.bce_criterion(fake_output, fake_label)                
                 real_gan_loss = self.bce_criterion(real_output, real_label)
                 disc_loss = 0.5 * (real_gan_loss + fake_gan_loss)
                 
@@ -115,7 +113,7 @@ class Hydra():
                     noise = torch.randn(batch_size, self.noise_dim)
                     fake_images_batch = self.generator(noise)
                     
-                    fake_output = self.discriminator(fake_images_batch)
+                    fake_output = self.discriminator(fake_images_batch).view(-1,)
                     fake_label = torch.full((batch_size,), 1.0, dtype=torch.float, device=self.device)
                     
                     self.generator_optimizer.zero_grad()

@@ -49,6 +49,7 @@ class Discriminator(nn.Module):
         x = self.linear(x)
         x = self.bn3(x)
         x = torch.sigmoid_(x)
+        return x
         
     def _get_dimension(self) -> int:
         

@@ -15,7 +15,6 @@ import os
 from datetime import datetime
 import json
 import torch
-from torch._C import device
 
 from src.cnn.network import CNN
 from src.hydra.hydra import Hydra
@@ -40,12 +39,11 @@ def main(args):
                   l2=args.discriminator_cnn_ratio,
                   device=args.device,
                   wanted_p=args.wanted_p,
-                  save_dir=args.save_dir)
+                  save_dir=save_dir)
     
     model._train(epochs=args.epochs,
                  batch_size=args.batch_size,
                  real_images=real_images,
-                 device=args.device,
                  set_generate_plots=args.set_generate_plots,
                  bins_number=args.bins_number)
     
@@ -69,10 +67,9 @@ if __name__ == "__main__":
     parser.add_argument("--save_dir", type=str, default="./saved_models/hydra")
     parser.add_argument("--CNN_model_path", type=str, default="./saved_models/cnn_regression/2021.10.17.18.29.07/model/final_model.pt")
     parser.add_argument("--device", type=str, default='cpu')
-
     parser.add_argument('--set_generate_plots', dest='set_generate_plots', action='store_true')
     parser.add_argument('--no-set_generate_plots', dest='set_generate_plots', action='store_false')
     parser.set_defaults(set_generate_plots=False)
-
+    
     args = parser.parse_args()
     main(args)
