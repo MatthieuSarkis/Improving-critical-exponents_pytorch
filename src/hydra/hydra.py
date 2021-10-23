@@ -54,7 +54,7 @@ class Hydra():
         
         self.generator_optimizer = torch.optim.Adam(params=self.generator.parameters(), lr=self.generator_learning_rate)
         self.discriminator_optimizer = torch.optim.Adam(params=self.discriminator.parameters(), lr=self.discriminator_learning_rate)
-        self.cnn_criterion = MSELossRegularized(loss_function=nn.MSELoss(), cnn=self.cnn, l=l1, wanted_output=wanted_p)
+        self.cnn_criterion = MSELossRegularized(loss_function=nn.L1Loss(), cnn=self.cnn, l=l1, wanted_output=wanted_p)
         self.bce_criterion = nn.BCELoss()
         
         self.generator.to(self.device)
