@@ -18,7 +18,7 @@ def percolation_configuration(L, p):
     spin = (np.random.random(size=(L,L)) < p).astype(np.int8)
     return 2 * spin - 1
 
-def generate_data_torch(dataset_size, lattice_size=128, save_dir=None):
+def generate_data_torch(dataset_size, lattice_size=128, split=False, save_dir=None):
 
     X = []
     y = []
@@ -37,4 +37,10 @@ def generate_data_torch(dataset_size, lattice_size=128, save_dir=None):
         torch.save(X, os.path.join(save_dir, 'images.pt'))
         torch.save(y, os.path.join(save_dir, 'labels.pt'))
     
-    return X, y
+    if split:
+        X_train = X[:(3*dataset_size)//4]
+        X_test = X[(3*dataset_size)//4:]
+        y_train = y[:(3*dataset_size)//4]
+        y_test = y[(3*dataset_size)//4:]
+ 
+    return (X, y) if not split else (X_train, y_train, X_test, y_test)

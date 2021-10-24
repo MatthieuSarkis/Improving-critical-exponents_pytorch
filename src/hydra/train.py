@@ -24,10 +24,13 @@ def main(args):
     
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
 
-    real_images, _ = generate_data_torch(args.dataset_size)
+    real_images, _ = generate_data_torch(dataset_size=args.dataset_size,
+                                         lattice_size=args.lattice_size,
+                                         split=False,
+                                         save_dir=None)
 
-    cnn_checkpoint = torch.load(args.CNN_model_path)
-    cnn_checkpoint['device'] = args.device
+    cnn_checkpoint = torch.load(args.CNN_model_path, map_location=torch.device(args.device))
+    cnn_checkpoint['constructor_args']['device'] = args.device
     cnn = CNN(**cnn_checkpoint['constructor_args'])   
     cnn.load_state_dict(cnn_checkpoint['model_state_dict'])
     

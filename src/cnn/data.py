@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+import os
 import numpy as np
 import torch
 #from torch.utils.data import Dataset
@@ -18,7 +19,7 @@ def percolation_configuration(L, p):
     spin = (np.random.random(size=(L,L)) < p).astype(np.int8)
     return 2 * spin - 1
 
-def generate_data_torch(dataset_size, lattice_size=128):
+def generate_data_torch(dataset_size, lattice_size=128, split=False, save_dir=None):
 
     X = []
     y = []
@@ -33,12 +34,17 @@ def generate_data_torch(dataset_size, lattice_size=128):
     X = torch.from_numpy(X).float().unsqueeze(1)
     y = torch.from_numpy(y).float().view(-1, 1)
     
-    X_train = X[:(3*dataset_size)//4]
-    X_test = X[(3*dataset_size)//4:]
-    y_train = y[:(3*dataset_size)//4]
-    y_test = y[(3*dataset_size)//4:]
-
-    return X_train, y_train, X_test, y_test
+    if save_dir is not None:
+        torch.save(X, os.path.join(save_dir, 'images.pt'))
+        torch.save(y, os.path.join(save_dir, 'labels.pt'))
+    
+    if split:
+        X_train = X[:(3*dataset_size)//4]
+        X_test = X[(3*dataset_size)//4:]
+        y_train = y[:(3*dataset_size)//4]
+        y_test = y[(3*dataset_size)//4:]
+ 
+    return (X, y) if not split else (X_train, y_train, X_test, y_test)
 
 
 #def generate_data(dataset_size, lattice_size=128):

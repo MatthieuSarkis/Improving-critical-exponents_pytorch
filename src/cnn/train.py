@@ -14,6 +14,8 @@ from argparse import ArgumentParser
 from datetime import datetime
 import json
 import os
+
+from torch.serialization import save
 #from torch.utils.data import DataLoader, random_split
 #from torchsummary import summary
 
@@ -24,7 +26,10 @@ def main(args):
 
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
 
-    X_train, y_train, X_test, y_test = generate_data_torch(args.dataset_size)
+    X_train, y_train, X_test, y_test = generate_data_torch(dataset_size=args.dataset_size,
+                                                           lattice_size=args.lattice_size,
+                                                           split=True,
+                                                           save_dir=None)
     
     model = CNN(lattice_size=args.lattice_size,
                 n_conv_layers=4,
