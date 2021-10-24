@@ -27,8 +27,11 @@ def generate_data_torch(dataset_size, lattice_size=128):
         y.append(np.random.rand())
         X.append(percolation_configuration(lattice_size, y[-1]))
 
-    X = torch.tensor(X).float().unsqueeze(1)
-    y = torch.tensor(y).float().view(-1, 1)
+    X = np.array(X)
+    y = np.array(y)
+
+    X = torch.from_numpy(X).float().unsqueeze(1)
+    y = torch.from_numpy(y).float().view(-1, 1)
     
     X_train = X[:(3*dataset_size)//4]
     X_test = X[(3*dataset_size)//4:]

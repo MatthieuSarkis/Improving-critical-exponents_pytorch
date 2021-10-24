@@ -14,7 +14,9 @@ import os
 import numpy as np
 import torch
 
-from src.statphy.models.percolation import percolation_configuration
+def percolation_configuration(L, p):
+    spin = (np.random.random(size=(L,L)) < p).astype(np.int8)
+    return 2 * spin - 1
 
 def generate_data_torch(dataset_size, lattice_size=128, save_dir=None):
 
@@ -25,8 +27,11 @@ def generate_data_torch(dataset_size, lattice_size=128, save_dir=None):
         y.append(np.random.rand())
         X.append(percolation_configuration(lattice_size, y[-1]))
 
-    X = torch.tensor(X).float().unsqueeze(1)
-    y = torch.tensor(y).float().view(-1, 1)
+    X = np.array(X)
+    y = np.array(y)
+
+    X = torch.from_numpy(X).float().unsqueeze(1)
+    y = torch.from_numpy(y).float().view(-1, 1)
     
     if save_dir is not None:
         torch.save(X, os.path.join(save_dir, 'images.pt'))
