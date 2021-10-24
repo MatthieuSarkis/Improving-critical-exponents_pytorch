@@ -14,7 +14,9 @@ import numpy as np
 import torch
 #from torch.utils.data import Dataset
 
-from src.statphy.models.percolation import percolation_configuration
+def percolation_configuration(L, p):
+    spin = (np.random.random(size=(L,L)) < p).astype(np.int8)
+    return 2 * spin - 1
 
 def generate_data_torch(dataset_size, lattice_size=128):
 

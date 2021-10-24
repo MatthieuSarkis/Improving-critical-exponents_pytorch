@@ -35,10 +35,13 @@ def main(args):
                   lattice_size=args.lattice_size,
                   noise_dim=args.noise_dim,
                   n_conv_cells=args.n_conv_cells,
+                  n_convt_cells=args.n_convt_cells,
                   generator_learning_rate=args.generator_learning_rate,
                   discriminator_learning_rate=args.discriminator_learning_rate,
                   l1=args.regularization_strength,
-                  l2=args.discriminator_cnn_ratio,
+                  l2=args.hydra_ratio_bce,
+                  l3=args.hydra_ratio_cnn,
+                  patience_generator=args.patience_generator,
                   device=args.device,
                   wanted_p=args.wanted_p,
                   save_dir=save_dir)
@@ -61,11 +64,14 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=512)
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--n_conv_cells", type=int, default=3)
+    parser.add_argument("--n_convt_cells", type=int, default=5)
     parser.add_argument("--bins_number", type=int, default=100)
     parser.add_argument("--generator_learning_rate", type=float, default=10e-3)
     parser.add_argument("--discriminator_learning_rate", type=float, default=10e-3)
     parser.add_argument("--regularization_strength", type=float, default=1.0)
-    parser.add_argument("--discriminator_cnn_ratio", type=float, default=1.0)
+    parser.add_argument("--hydra_ratio_bce", type=float, default=1.0)
+    parser.add_argument("--hydra_ratio_cnn", type=float, default=1.0)
+    parser.add_argument("--patience_generator", type=int, default=2)
     parser.add_argument("--noise_dim", type=int, default=100)
     parser.add_argument("--wanted_p", type=float, default=0.5928)
     parser.add_argument("--save_dir", type=str, default="./saved_models/hydra")

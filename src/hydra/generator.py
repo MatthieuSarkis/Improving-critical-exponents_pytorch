@@ -56,6 +56,7 @@ class Generator(nn.Module):
     
     def __init__(self,
                  noise_dim: int = 100,
+                 n_convt_cells: int = 5,
                  device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
                  ) -> None:
 
@@ -66,15 +67,19 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
             
         self.device = device  
-        self.to(self.device)
-        self.linear = nn.Linear(noise_dim, 2*2*256)
-        self.bn = nn.BatchNorm1d(2*2*256)
+        initial_size = 128 // 2**(n_convt_cells+1)
+        
+        self.linear = nn.Linear(noise_dim, initial_size * initial_size * 256)
+        self.bn = nn.BatchNorm1d(initial_size * initial_size * 256)
+        
         convt_block = []
-        for i in reversed(range(4, 9)):
+        for i in reversed(range(n_convt_cells-1, 9)):
             convt_block.append(ConvTransposeCell(2**i, 2**(i-1)))
-        convt_block.append(nn.ConvTranspose2d(in_channels=8, out_channels=1, kernel_size=3, stride=2, padding=1, output_padding=1, dilation=1))
+        convt_block.append(nn.ConvTranspose2d(in_channels=256//2**n_convt_cells, out_channels=1, kernel_size=3, stride=2, padding=1, output_padding=1, dilation=1))
         convt_block.append(nn.BatchNorm2d(1))
         self.convt_block = nn.Sequential(*convt_block)
+        
+        self.to(self.device)
                  
     def forward(self,
                 x: torch.tensor,
@@ -86,5 +91,5 @@ class Generator(nn.Module):
         x = self.bn(x)
         x = x.view(-1, 256, 2, 2)
         x = self.convt_block(x)
-        x = (lambda y: torch.tanh(2.0 * y))(x)
+        x = (lambda y: torch.tanh(1.0 * y))(x)
         return x

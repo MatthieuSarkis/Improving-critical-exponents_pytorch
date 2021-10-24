@@ -25,10 +25,13 @@ class Hydra():
                  lattice_size: int = 128,
                  noise_dim: int = 100,
                  n_conv_cells: int = 3,
+                 n_convt_cells: int = 5,
                  generator_learning_rate: float = 10e-4,
                  discriminator_learning_rate: float = 10e-3,
                  l1: float = 1.0,
                  l2: float = 1.0,
+                 l3: float = 1.0,
+                 patience_generator: int = 2,
                  device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
                  wanted_p: float = 0.5928,
                  save_dir: str = './saved_models/hydra',
@@ -45,9 +48,11 @@ class Hydra():
         self.generator_learning_rate = generator_learning_rate
         self.discriminator_learning_rate = discriminator_learning_rate
         self.l2 = l2
+        self.l3 = l3
+        self.patience_generator = patience_generator
         
         self.logger = Logger(save_dir=save_dir)
-        self.generator = Generator(noise_dim=noise_dim, device=device)
+        self.generator = Generator(noise_dim=noise_dim, n_convt_cells=n_convt_cells, device=device)
         self.discriminator = Discriminator(lattice_size=lattice_size, n_conv_cells=n_conv_cells, device=device)
         self.cnn = cnn.to(self.device)
         self.cnn.eval()
@@ -111,7 +116,7 @@ class Hydra():
                 self.generator.train()
                 self.discriminator.eval()
                 
-                for _ in range(2):
+                for _ in range(self.patience_generator):
                     
                     noise = torch.randn(batch_size, self.noise_dim, device=self.device)
                     fake_images_batch = self.generator(noise)
@@ -123,7 +128,7 @@ class Hydra():
                     
                     bce_loss = self.bce_criterion(fake_output, fake_label)
                     cnn_loss = self.cnn_criterion(fake_images_batch)
-                    gen_loss = bce_loss + self.l2 * cnn_loss
+                    gen_loss = self.l2 * bce_loss + self.l3 * cnn_loss
                     
                     gen_loss.backward()
                     self.generator_optimizer.step()

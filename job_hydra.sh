@@ -4,11 +4,14 @@ python src/hydra/train.py \
     --batch_size 10 \
     --epochs 10 \
     --n_conv_cells 3 \
+    --n_convt_cells 5 \
     --bins_number 100 \
     --generator_learning_rate 10e-3 \
     --discriminator_learning_rate 10e-3 \
     --regularization_strength 1.0 \
-    --discriminator_cnn_ratio 1.0 \
+    --hydra_ratio_bce 1.0 \
+    --hydra_ratio_cnn 1.0 \
+    --patience_generator 2 \
     --noise_dim 100 \
     --wanted_p 0.5928 \
     --save_dir "./saved_models/hydra" \
