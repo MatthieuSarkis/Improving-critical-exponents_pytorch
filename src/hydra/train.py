@@ -18,7 +18,7 @@ import torch
 
 from src.cnn.network import CNN
 from src.hydra.hydra import Hydra
-from src.hydra.data import generate_data_torch
+from src.data import generate_data_torch
 
 def main(args):
     
@@ -26,6 +26,7 @@ def main(args):
 
     real_images, _ = generate_data_torch(dataset_size=args.dataset_size,
                                          lattice_size=args.lattice_size,
+                                         p_list=[args.wanted_p],
                                          split=False,
                                          save_dir=None)
 

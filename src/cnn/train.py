@@ -19,7 +19,7 @@ from torch.serialization import save
 #from torch.utils.data import DataLoader, random_split
 #from torchsummary import summary
 
-from src.cnn.data import generate_data_torch
+from src.data import generate_data_torch
 from src.cnn.network import CNN
 
 def main(args):
@@ -28,6 +28,7 @@ def main(args):
 
     X_train, y_train, X_test, y_test = generate_data_torch(dataset_size=args.dataset_size,
                                                            lattice_size=args.lattice_size,
+                                                           p_list=None,
                                                            split=True,
                                                            save_dir=None)
     

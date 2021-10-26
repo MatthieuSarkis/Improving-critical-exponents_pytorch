@@ -18,13 +18,16 @@ def percolation_configuration(L, p):
     spin = (np.random.random(size=(L,L)) < p).astype(np.int8)
     return 2 * spin - 1
 
-def generate_data_torch(dataset_size, lattice_size=128, split=False, save_dir=None):
+def generate_data_torch(dataset_size, lattice_size=128, p_list=None, split=False, save_dir=None):
 
     X = []
     y = []
 
     for _ in range(dataset_size):
-        y.append(np.random.rand())
+        if p_list is not None:
+            y.append(np.random.choice(p_list))
+        else:
+            y.append(np.random.rand())
         X.append(percolation_configuration(lattice_size, y[-1]))
 
     X = np.array(X)
