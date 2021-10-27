@@ -23,16 +23,21 @@ class ConvCell(nn.Module):
         
         super(ConvCell, self).__init__()
         
-        self.conv = nn.Conv2d(in_channels=input_dim, out_channels=output_dim, kernel_size=3, stride=2, padding=1, dilation=1)
-        self.bn = nn.BatchNorm2d(output_dim)
+        self.conv1 = nn.Conv2d(in_channels=input_dim, out_channels=output_dim, kernel_size=3, stride=2, padding=1, dilation=1)
+        self.bn1 = nn.BatchNorm2d(output_dim)
+        self.conv2 = nn.Conv2d(in_channels=output_dim, out_channels=output_dim, kernel_size=3, stride=1, padding='same')
+        self.bn2 = nn.BatchNorm2d(output_dim)
    
     def forward(self,
                 x: torch.tensor,
                 ) -> torch.tensor:
         
-        x = self.conv(x)
-        x = self.bn(x)
+        x = self.conv1(x)
+        x = self.bn1(x)
         x = F.leaky_relu_(x)
+        #x = self.conv2(x)
+        #x = self.bn2(x)
+        #x = F.leaky_relu_(x)
         return x
 
 class Discriminator(nn.Module):

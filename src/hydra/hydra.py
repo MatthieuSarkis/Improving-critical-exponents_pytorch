@@ -82,16 +82,19 @@ class Hydra():
             permutation = torch.randperm(real_images.shape[0])
             generator_loss = 0.0
             discriminator_loss = 0.0
+            correct_predictions = 0
+            total = 0
 
             for i in range(0, real_images.shape[0], batch_size):
 
                 indices = permutation[i:i+batch_size]
+                number_images = indices.shape[0]
                  
                 # Training the discriminator
                 self.generator.eval()
                 self.discriminator.train()
                 
-                noise = torch.randn(batch_size, self.noise_dim, device=self.device)
+                noise = torch.randn(number_images, self.noise_dim, device=self.device)
                 fake_images_batch = self.generator(noise)
                 real_images_batch = real_images[indices].to(self.device)
                 
@@ -111,6 +114,15 @@ class Hydra():
                 self.discriminator_optimizer.step()
                 
                 discriminator_loss += disc_loss.item()
+                
+                # Computing the accuracy of the discriminator
+                fake_output[fake_output<0.5] = 0
+                fake_output[fake_output>=0.5] = 1
+                real_output[real_output<0.5] = 0
+                real_output[real_output>=0.5] = 1
+                correct_predictions += (fake_output==fake_label).sum().item()
+                correct_predictions += (real_output==real_label).sum().item()
+                total += 2*number_images # set of real images and set of fake images, hence the 2
             
                 # Training the generator
                 self.generator.train()
@@ -118,11 +130,11 @@ class Hydra():
                 
                 for _ in range(self.patience_generator):
                     
-                    noise = torch.randn(batch_size, self.noise_dim, device=self.device)
+                    noise = torch.randn(number_images, self.noise_dim, device=self.device)
                     fake_images_batch = self.generator(noise)
                     
                     fake_output = self.discriminator(fake_images_batch).view(-1,)
-                    fake_label = torch.full((batch_size,), 1.0, dtype=torch.float, device=self.device)
+                    fake_label = torch.full((number_images,), 1.0, dtype=torch.float, device=self.device)
                     
                     self.generator_optimizer.zero_grad()
                     
@@ -139,13 +151,15 @@ class Hydra():
                 
             discriminator_loss /= (real_images.shape[0]//batch_size)
             generator_loss /= (real_images.shape[0]//batch_size)
+            discriminator_accuracy = 100 * correct_predictions / total
             
             self.logger.logs['discriminator_loss'].append(discriminator_loss)
             self.logger.logs['generator_loss'].append(generator_loss)
+            self.logger.logs['discriminator_accuracy'].append(discriminator_accuracy)
             self.logger.save_logs()
             self.logger.save_checkpoint(model=self, epoch=epoch)
             self.logger.set_time_stamp(2)
-            self.logger.print_status(epoch=epoch,epochs=epochs)
+            self.logger.print_status(epoch=epoch, epochs=epochs)
             
             if set_generate_plots:
                 self.logger.generate_plots(generator=self.generator,

@@ -52,6 +52,7 @@ class Logger():
         
         self.logs['generator_loss'] = []
         self.logs['discriminator_loss'] = []
+        self.logs['discriminator_accuracy'] = []
         self.time_stamp = [0, 0]
             
     def set_time_stamp(self,
@@ -67,7 +68,12 @@ class Logger():
                      ) -> None:
         """Method to print on the status of the run on the standard output"""
         
-        print('Epoch: {}/{}, Generator Loss: {:.6f}, Discriminator Loss: {:.6f}, Time: {:.2f}s'.format(epoch+1, epochs, self.logs["generator_loss"][-1], self.logs["discriminator_loss"][-1], self.time_stamp[1]-self.time_stamp[0]))
+        print('Epoch: {}/{}, Generator Loss: {:.6f}, Discriminator Loss: {:.6f}, Discriminator Accuracy: {:.4f}, Time: {:.2f}s'.format(epoch+1, 
+                                                                                                                                       epochs, 
+                                                                                                                                       self.logs["generator_loss"][-1], 
+                                                                                                                                       self.logs["discriminator_loss"][-1], 
+                                                                                                                                       self.logs["discriminator_accuracy"][-1], 
+                                                                                                                                       self.time_stamp[1]-self.time_stamp[0]))
     
     def save_logs(self) -> None:
         """Saves all the necessary logs to 'save_dir_logs' directory."""
@@ -118,5 +124,6 @@ class Logger():
                     'discriminator_optimizer_state_dict': model.discriminator_optimizer.state_dict(),
                     'generator_loss': self.logs['generator_loss'],
                     'discriminator_loss': self.logs['discriminator_loss'],
+                    'discriminator_accuracy': self.logs['discriminator_accuracy']
                     }
                 torch.save(checkpoint_dict, os.path.join(self.save_dir_ckpts, 'ckpt_{}.pt'.format(epoch)))

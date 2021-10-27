@@ -1,7 +1,7 @@
 python src/hydra/train.py \
     --lattice_size 128 \
-    --dataset_size 100 \
-    --batch_size 10 \
+    --dataset_size 20 \
+    --batch_size 5 \
     --epochs 10 \
     --n_conv_cells 3 \
     --n_convt_cells 5 \
