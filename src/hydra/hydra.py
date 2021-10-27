@@ -147,7 +147,7 @@ class Hydra():
                     
                     generator_loss += gen_loss.item()
 
-                generator_loss /= 2
+                generator_loss /= self.patience_generator
                 
             discriminator_loss /= (real_images.shape[0]//batch_size)
             generator_loss /= (real_images.shape[0]//batch_size)
