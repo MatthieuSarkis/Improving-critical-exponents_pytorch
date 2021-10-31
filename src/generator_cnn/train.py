@@ -36,7 +36,7 @@ def main(args):
                           device=args.device,
                           save_dir=save_dir)
     
-    generator.train(epochs=args.epochs,
+    generator._train(epochs=args.epochs,
                      batch_size=args.batch_size,
                      bins_number=args.bins_number,
                      set_generate_plots=args.set_generate_plots)

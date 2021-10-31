@@ -41,7 +41,7 @@ def main(args):
                 device=args.device,
                 save_dir=save_dir)
     
-    model.train(epochs=args.epochs,
+    model._train(epochs=args.epochs,
                  X_train=X_train,
                  y_train=y_train,
                  X_test=X_test,
