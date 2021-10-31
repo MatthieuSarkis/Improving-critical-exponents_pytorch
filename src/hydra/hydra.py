@@ -65,13 +65,13 @@ class Hydra():
         self.generator.to(self.device)
         self.discriminator.to(self.device)
         
-    def _train(self,
-               epochs: int,
-               batch_size: int,
-               real_images: torch.tensor,
-               set_generate_plots: bool = False,
-               bins_number: int = 100,
-               ) -> None:
+    def train(self,
+              epochs: int,
+              batch_size: int,
+              real_images: torch.tensor,
+              set_generate_plots: bool = False,
+              bins_number: int = 100,
+              ) -> None:
         
         self.logger.initialize()
         

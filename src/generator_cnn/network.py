@@ -124,12 +124,12 @@ class Generator(nn.Module):
         x = (lambda y: torch.tanh(2.0 * y))(x)
         return x
 
-    def _train(self,
-               epochs: int,
-               batch_size: int,
-               bins_number: int,
-               set_generate_plots: bool = False,
-               ) -> None:
+    def train(self,
+              epochs: int,
+              batch_size: int,
+              bins_number: int,
+              set_generate_plots: bool = False,
+              ) -> None:
     
         self.logger.initialize()
     

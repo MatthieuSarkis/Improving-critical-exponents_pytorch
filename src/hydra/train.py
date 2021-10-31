@@ -50,7 +50,7 @@ def main(args):
                   wanted_p=args.wanted_p,
                   save_dir=save_dir)
     
-    model._train(epochs=args.epochs,
+    model.train(epochs=args.epochs,
                  batch_size=args.batch_size,
                  real_images=real_images,
                  set_generate_plots=args.set_generate_plots,

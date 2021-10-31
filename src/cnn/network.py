@@ -147,15 +147,15 @@ class CNN(nn.Module):
             nn.init.xavier_uniform_(module.weight)
             module.bias.data.fill_(1e-2)
    
-    def _train(self,
-               epochs: int,
-               X_train: torch.tensor,
-               y_train: torch.tensor,
-               X_test: torch.tensor,
-               y_test: torch.tensor,
-               batch_size: int,
-               save_checkpoints: bool,
-               ) -> None:
+    def train(self,
+              epochs: int,
+              X_train: torch.tensor,
+              y_train: torch.tensor,
+              X_test: torch.tensor,
+              y_test: torch.tensor,
+              batch_size: int,
+              save_checkpoints: bool,
+              ) -> None:
     
         self.loss_history = {'train': [], 'test': []}
     
