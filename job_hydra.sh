@@ -3,7 +3,7 @@ python src/hydra/train.py \
     --dataset_size 20 \
     --batch_size 5 \
     --epochs 10 \
-    --n_conv_cells 3 \
+    --n_conv_cells 2 \
     --n_convt_cells 5 \
     --bins_number 100 \
     --generator_learning_rate 10e-3 \
@@ -11,7 +11,7 @@ python src/hydra/train.py \
     --regularization_strength 1.0 \
     --hydra_ratio_bce 1.0 \
     --hydra_ratio_cnn 1.0 \
-    --patience_generator 2 \
+    --patience_generator 1 \
     --noise_dim 100 \
     --wanted_p 0.5928 \
     --save_dir "./saved_models/hydra" \
