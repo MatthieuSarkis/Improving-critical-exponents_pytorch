@@ -15,18 +15,23 @@
 #export HDF5_USE_FILE_LOCKING='FALSE'  # for exporting hd5 file
 #export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/extras/CUPTI/lib64
 
-source .env/bin/activate # activate your environment
-
-python src/statphy/data_factory.py      \
-	--model square_lattice_percolation  \
-	--L 128                          \
-	--control_parameter 0.5928        \
-	--samples 50000                      \
-	--path "./data/simulation-50k"
-
-python src/GAN/train.py \
-	--data_path "./data/simulation-50k/L=128_p=0.5928.npz" \
-	--batch_size 500 \
-	--epochs 1000 \
-	--noise_dim 100 \
-	--save_dir ./data/models/gan-50k
+python src/hydra/train.py \
+    --lattice_size 128 \
+    --dataset_size 20 \
+    --batch_size 5 \
+    --epochs 10 \
+    --n_conv_cells 3 \
+    --n_convt_cells 5 \
+    --bins_number 100 \
+    --generator_learning_rate 10e-3 \
+    --discriminator_learning_rate 10e-3 \
+    --regularization_strength 1.0 \
+    --hydra_ratio_bce 1.0 \
+    --hydra_ratio_cnn 1.0 \
+    --patience_generator 2 \
+    --noise_dim 100 \
+    --wanted_p 0.5928 \
+    --save_dir "./saved_models/hydra" \
+    --CNN_model_path "./saved_models/cnn_regression/2021.10.19.11.09.07/model/final_model.pt" \
+    --device "cpu" \
+    --no-set_generate_plots
