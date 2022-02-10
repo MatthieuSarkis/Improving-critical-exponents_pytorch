@@ -20,22 +20,23 @@ from src.hydra.utils import MSELossRegularized
 
 class Hydra():
     
-    def __init__(self,
-                 cnn: nn.Module,
-                 lattice_size: int = 128,
-                 noise_dim: int = 100,
-                 n_conv_cells: int = 3,
-                 n_convt_cells: int = 5,
-                 generator_learning_rate: float = 10e-4,
-                 discriminator_learning_rate: float = 10e-3,
-                 l1: float = 1.0,
-                 l2: float = 1.0,
-                 l3: float = 1.0,
-                 patience_generator: int = 2,
-                 device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
-                 wanted_p: float = 0.5928,
-                 save_dir: str = './saved_models/hydra',
-                 ) -> None:
+    def __init__(
+        self,
+        cnn: nn.Module,
+        lattice_size: int = 128,
+        noise_dim: int = 100,
+        n_conv_cells: int = 3,
+        n_convt_cells: int = 5,
+        generator_learning_rate: float = 1e-4,
+        discriminator_learning_rate: float = 1e-3,
+        l1: float = 1.0,
+        l2: float = 1.0,
+        l3: float = 1.0,
+        patience_generator: int = 2,
+        device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
+        wanted_p: float = 0.5928,
+        save_dir: str = './saved_models/hydra',
+    ) -> None:
 
         self.constructor_args = locals()
         del self.constructor_args['self']
@@ -65,13 +66,14 @@ class Hydra():
         self.generator.to(self.device)
         self.discriminator.to(self.device)
         
-    def _train(self,
-               epochs: int,
-               batch_size: int,
-               real_images: torch.tensor,
-               set_generate_plots: bool = False,
-               bins_number: int = 100,
-               ) -> None:
+    def _train(
+        self,
+        epochs: int,
+        batch_size: int,
+        real_images: torch.tensor,
+        set_generate_plots: bool = False,
+        bins_number: int = 100,
+    ) -> None:
         
         self.logger.initialize()
         
@@ -122,7 +124,7 @@ class Hydra():
                 real_output[real_output>=0.5] = 1
                 correct_predictions += (fake_output==fake_label).sum().item()
                 correct_predictions += (real_output==real_label).sum().item()
-                total += 2*number_images # set of real images and set of fake images, hence the 2
+                total += 2*number_images # set of real images and set of fake images, hence the factor 2
             
                 # Training the generator
                 self.generator.train()
@@ -149,8 +151,8 @@ class Hydra():
 
                 generator_loss /= self.patience_generator
                 
-            discriminator_loss /= (real_images.shape[0]//batch_size)
-            generator_loss /= (real_images.shape[0]//batch_size)
+            discriminator_loss /= (real_images.shape[0]/batch_size)
+            generator_loss /= (real_images.shape[0]/batch_size)
             discriminator_accuracy = 100 * correct_predictions / total
             
             self.logger.logs['discriminator_loss'].append(discriminator_loss)
@@ -162,10 +164,12 @@ class Hydra():
             self.logger.print_status(epoch=epoch, epochs=epochs)
             
             if set_generate_plots:
-                self.logger.generate_plots(generator=self.generator,
-                                           cnn=self.cnn,
-                                           epoch=epoch,
-                                           noise_dim=self.noise_dim,
-                                           bins_number=bins_number)
+                self.logger.generate_plots(
+                    generator=self.generator,
+                    cnn=self.cnn,
+                    epoch=epoch,
+                    noise_dim=self.noise_dim,
+                    bins_number=bins_number
+                )
          
         self.logger.save_checkpoint(model=self, is_final_model=True)

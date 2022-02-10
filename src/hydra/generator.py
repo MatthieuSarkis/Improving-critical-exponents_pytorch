@@ -23,21 +23,25 @@ class ConvTransposeCell(nn.Module):
         
         super(ConvTransposeCell, self).__init__()
         
-        self.convt1 = nn.ConvTranspose2d(in_channels=input_dim, 
-                                         out_channels=output_dim, 
-                                         kernel_size=3, 
-                                         stride=2, 
-                                         padding=1, 
-                                         output_padding=1, 
-                                         dilation=1)
+        self.convt1 = nn.ConvTranspose2d(
+            in_channels=input_dim, 
+            out_channels=output_dim, 
+            kernel_size=3, 
+            stride=2, 
+            padding=1, 
+            output_padding=1, 
+            dilation=1
+        )
         self.bn1 = nn.BatchNorm2d(output_dim)
-        self.convt2 = nn.ConvTranspose2d(in_channels=output_dim, 
-                                         out_channels=output_dim, 
-                                         kernel_size=3, 
-                                         stride=1, 
-                                         padding=1, 
-                                         output_padding=0, 
-                                         dilation=1)
+        self.convt2 = nn.ConvTranspose2d(
+            in_channels=output_dim, 
+            out_channels=output_dim, 
+            kernel_size=3, 
+            stride=1, 
+            padding=1, 
+            output_padding=0, 
+            dilation=1
+        )
         self.bn2 = nn.BatchNorm2d(output_dim) 
 
     def forward(self,
@@ -54,11 +58,12 @@ class ConvTransposeCell(nn.Module):
           
 class Generator(nn.Module):
     
-    def __init__(self,
-                 noise_dim: int = 100,
-                 n_convt_cells: int = 5,
-                 device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
-                 ) -> None:
+    def __init__(
+        self,
+        noise_dim: int = 100,
+        n_convt_cells: int = 5,
+        device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
+    ) -> None:
 
         self.constructor_args = locals()
         del self.constructor_args['self']

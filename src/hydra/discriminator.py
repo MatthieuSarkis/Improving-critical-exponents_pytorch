@@ -16,16 +16,30 @@ import torch.nn.functional as F
 
 class ConvCell(nn.Module):
     
-    def __init__(self,
-                 input_dim: int,
-                 output_dim: int,
-                 ) -> None:
+    def __init__(
+        self,
+        input_dim: int,
+        output_dim: int,
+    ) -> None:
         
         super(ConvCell, self).__init__()
         
-        self.conv1 = nn.Conv2d(in_channels=input_dim, out_channels=output_dim, kernel_size=3, stride=2, padding=1, dilation=1)
+        self.conv1 = nn.Conv2d(
+            in_channels=input_dim, 
+            out_channels=output_dim, 
+            kernel_size=3, 
+            stride=2, 
+            padding=1, 
+            dilation=1
+        )
         self.bn1 = nn.BatchNorm2d(output_dim)
-        self.conv2 = nn.Conv2d(in_channels=output_dim, out_channels=output_dim, kernel_size=3, stride=1, padding='same')
+        self.conv2 = nn.Conv2d(
+            in_channels=output_dim, 
+            out_channels=output_dim, 
+            kernel_size=3, 
+            stride=1, 
+            padding='same'
+        )
         self.bn2 = nn.BatchNorm2d(output_dim)
    
     def forward(self,
@@ -35,18 +49,19 @@ class ConvCell(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = F.leaky_relu_(x)
-        #x = self.conv2(x)
-        #x = self.bn2(x)
-        #x = F.leaky_relu_(x)
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = F.leaky_relu_(x)
         return x
 
 class Discriminator(nn.Module):
     
-    def __init__(self,
-                 lattice_size: int = 128,
-                 n_conv_cells: int = 3,
-                 device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
-                 ) -> None:
+    def __init__(
+        self,
+        lattice_size: int = 128,
+        n_conv_cells: int = 3,
+        device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
+    ) -> None:
         
         super(Discriminator, self).__init__()
         
@@ -64,9 +79,10 @@ class Discriminator(nn.Module):
   
         self.to(self.device)
   
-    def forward(self,
-                x: torch.tensor,
-                ) -> torch.tensor:
+    def forward(
+        self,
+        x: torch.tensor,
+    ) -> torch.tensor:
         
         x = x.to(self.device)
         x = self.conv_block(x)

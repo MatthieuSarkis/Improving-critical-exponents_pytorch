@@ -17,12 +17,13 @@ import matplotlib.pyplot as plt
 
 class MSELossRegularized(torch.nn.Module):
     
-    def __init__(self,
-                 loss_function: torch.nn.modules.loss._Loss,
-                 cnn: torch.nn.Module,
-                 wanted_output: float = 0.5928,
-                 l: float = 0.5,
-                 ) -> None:
+    def __init__(
+        self,
+        loss_function: torch.nn.modules.loss._Loss,
+        cnn: torch.nn.Module,
+        wanted_output: float = 0.5928,
+        l: float = 0.5,
+    ) -> None:
         
         super(MSELossRegularized, self).__init__()
         
@@ -32,15 +33,17 @@ class MSELossRegularized(torch.nn.Module):
         self.l = l
         self.cnn.eval()
 
-    def forward(self,
-                generated_images: torch.tensor,
-                ) -> torch.tensor:
+    def forward(
+        self,
+        generated_images: torch.tensor,
+    ) -> torch.tensor:
         
         return self._generator_loss(generated_images)
         
-    def _generator_loss(self, 
-                        generated_images: torch.tensor,
-                        ) -> torch.tensor:
+    def _generator_loss(
+        self, 
+        generated_images: torch.tensor,
+    ) -> torch.tensor:
     
         predicted_output = self.cnn(generated_images)
         wanted_output_ = torch.full_like(predicted_output, self.wanted_output, dtype=torch.float32)
@@ -51,13 +54,14 @@ class MSELossRegularized(torch.nn.Module):
         return self.loss_function(wanted_output_, predicted_output) + regularization
 
 
-def plot_cnn_histogram(generator: torch.nn.Module,
-                       cnn: torch.nn.Module,
-                       epoch: int,
-                       save_dir: str,
-                       noise_dim: int = 100,
-                       bins_number: int = 100,
-                       ) -> None:
+def plot_cnn_histogram(
+    generator: torch.nn.Module,
+    cnn: torch.nn.Module,
+    epoch: int,
+    save_dir: str,
+    noise_dim: int = 100,
+    bins_number: int = 100,
+) -> None:
     
     generator.eval()
     cnn.eval()
@@ -81,9 +85,10 @@ def plot_cnn_histogram(generator: torch.nn.Module,
     os.makedirs(path, exist_ok=True)
     fig.savefig(os.path.join(path, "generatedImages_epoch{}.png".format(epoch)))
 
-def plot_losses(losses_history: Dict,
-                figure_file: str,
-                ) -> None:
+def plot_losses(
+    losses_history: Dict,
+    figure_file: str,
+) -> None:
     
     fig, ax = plt.subplots(1, 1)
     fig.set_size_inches(10, 7)
@@ -93,7 +98,12 @@ def plot_losses(losses_history: Dict,
     ax.set_title("Generator Loss history")
     fig.savefig(figure_file)
 
-def generate_and_save_images(model, epoch, test_input):
+def generate_and_save_images(
+    model, 
+    epoch: int, 
+    test_input,
+) -> None:
+
   predictions = model(test_input, training=False)
 
   fig = plt.figure(figsize=(4, 4))

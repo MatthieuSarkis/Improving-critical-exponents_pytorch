@@ -13,21 +13,34 @@
 import os
 import numpy as np
 import torch
+from typing import Tuple, Union
 
-def percolation_configuration(L, p):
+def percolation_configuration(
+    L: int, 
+    p: float,
+) -> np.ndarray:
+
     spin = (np.random.random(size=(L,L)) < p).astype(np.int8)
     return 2 * spin - 1
 
-def generate_data_torch(dataset_size, lattice_size=128, p_list=None, split=False, save_dir=None):
+def generate_data_torch(
+    dataset_size, 
+    lattice_size=128, 
+    p_list=None, 
+    split=False, 
+    save_dir=None
+) -> Union[Tuple[torch.tensor, torch.tensor], Tuple[torch.tensor, torch.tensor, torch.tensor, torch.tensor]]:
 
     X = []
     y = []
 
     for _ in range(dataset_size):
+
         if p_list is not None:
             y.append(np.random.choice(p_list))
         else:
             y.append(np.random.rand())
+            
         X.append(percolation_configuration(lattice_size, y[-1]))
 
     X = np.array(X)

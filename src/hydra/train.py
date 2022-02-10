@@ -23,41 +23,46 @@ from src.data import generate_data_torch
 def main(args):
     
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
+    with open(os.path.join(save_dir, 'args.json'), 'w') as f:
+        json.dump(vars(args), f, indent=4)
 
-    real_images, _ = generate_data_torch(dataset_size=args.dataset_size,
-                                         lattice_size=args.lattice_size,
-                                         p_list=[args.wanted_p],
-                                         split=False,
-                                         save_dir=None)
+    real_images, _ = generate_data_torch(
+        dataset_size=args.dataset_size,
+        lattice_size=args.lattice_size,
+        p_list=[args.wanted_p],
+        split=False,
+        save_dir=None
+    )
 
     cnn_checkpoint = torch.load(args.CNN_model_path, map_location=torch.device(args.device))
     cnn_checkpoint['constructor_args']['device'] = args.device
     cnn = CNN(**cnn_checkpoint['constructor_args'])   
     cnn.load_state_dict(cnn_checkpoint['model_state_dict'])
     
-    model = Hydra(cnn=cnn,
-                  lattice_size=args.lattice_size,
-                  noise_dim=args.noise_dim,
-                  n_conv_cells=args.n_conv_cells,
-                  n_convt_cells=args.n_convt_cells,
-                  generator_learning_rate=args.generator_learning_rate,
-                  discriminator_learning_rate=args.discriminator_learning_rate,
-                  l1=args.regularization_strength,
-                  l2=args.hydra_ratio_bce,
-                  l3=args.hydra_ratio_cnn,
-                  patience_generator=args.patience_generator,
-                  device=args.device,
-                  wanted_p=args.wanted_p,
-                  save_dir=save_dir)
+    model = Hydra(
+        cnn=cnn,
+        lattice_size=args.lattice_size,
+        noise_dim=args.noise_dim,
+        n_conv_cells=args.n_conv_cells,
+        n_convt_cells=args.n_convt_cells,
+        generator_learning_rate=args.generator_learning_rate,
+        discriminator_learning_rate=args.discriminator_learning_rate,
+        l1=args.regularization_strength,
+        l2=args.hydra_ratio_bce,
+        l3=args.hydra_ratio_cnn,
+        patience_generator=args.patience_generator,
+        device=args.device,
+        wanted_p=args.wanted_p,
+        save_dir=save_dir
+    )
     
-    model._train(epochs=args.epochs,
-                 batch_size=args.batch_size,
-                 real_images=real_images,
-                 set_generate_plots=args.set_generate_plots,
-                 bins_number=args.bins_number)
-    
-    with open(os.path.join(save_dir, 'args.json'), 'w') as f:
-        json.dump(vars(args), f, indent=4)
+    model._train(
+        epochs=args.epochs,
+        batch_size=args.batch_size,
+        real_images=real_images,
+        set_generate_plots=args.set_generate_plots,
+        bins_number=args.bins_number
+    )
         
 if __name__ == "__main__":
 

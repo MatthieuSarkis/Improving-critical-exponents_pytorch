@@ -13,30 +13,20 @@
 ```shell
 python setup.py install
 ```
-
-## Generate and save configurations.
-
-It is possible to generate a chosen number of configurations for a specific lattice size and for chosen control parameters.
-
-```shell
-python src/statphy/data_factory.py      \
-    --model square_lattice_percolation  \
-    --L 32 128                          \
-    --control_parameter 0.52 0.6        \
-    --samples 100                       \
-    --path "."
-```
-
 ## Control parameter estimation via CNN
 
 It possible to train a CNN with the following command:
 
  ```shell
 python src/CNN_regression/train.py \
-    --dataset_size 40 \
-    --batch_size 5 \
-    --epochs 2 \  
+    --dataset_size 1024 \
+    --lattice_size 128 \
+    --batch_size 64 \
+    --epochs 10 \
+    --learning_rate 1e-4 
  ```
+
+ The trained CNN is used to as one of the two heads in Hydra.
 
 ## Data augmentation via GAN
 
@@ -47,7 +37,7 @@ python src/GAN_CNNRegression/train.py \
 	--epochs 2 \
 	--batch_size 3 \
 	--noise_dim 100 \
-	--CNN_model_path "./saved_models/cnn_regression/2021.10.17.00.35.47/model/final_model.pt" \
+	--CNN_model_path ./saved_models/cnn_regression/2021.10.17.00.35.47/model/final_model.pt \
 	--bins_number 100 \
 	--no-set_generate_plots 
 ``` 
