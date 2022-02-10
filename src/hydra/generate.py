@@ -15,19 +15,29 @@ import torch
 import numpy as np
 import os 
 
+from src.hydra.hydra import Hydra
+
 def main(args):
 
     os.makedirs(args.data_dir, exist_ok=True)
-
-    generator = torch.load(args.model_dir)
-    generator.eval()
     
-    for i in range(args.number_images):
-        noise = torch.randn(1, args.noise_dim)
-        image = generator(noise)
-        image = torch.sign(image).to(torch.int8)
-        image = image.numpy()
-        np.save('./data/generated/{}'.format(i), image)
+    #hydra_model_path = "./saved_models/hydra/2021.10.22.12.24.41/model/final_model.pt"
+    #hydra_checkpoint = torch.load(hydra_model_path, map_location=torch.device(device))
+    #hydra_checkpoint['constructor_args']['device'] = 'cpu'
+    #hydra = Hydra(**hydra_checkpoint['constructor_args'])   
+    #hydra.generator.load_state_dict(hydra_checkpoint['generator_state_dict'])
+    #hydra.generator.eval()
+
+    hydra = torch.load(args.model_dir)
+    hydra.generator.eval()
+
+    with torch.no_grad:
+        for i in range(args.number_images):
+            noise = torch.randn(1, args.noise_dim)
+            image = hydra.generator(noise)
+            image = torch.sign(image).to(torch.int8)
+            image = image.numpy()
+            np.save('./data/generated/{}'.format(i), image)
 
 if __name__ == "__main__":
 

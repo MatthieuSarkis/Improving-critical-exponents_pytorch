@@ -33,22 +33,32 @@ python src/CNN_regression/train.py \
 ### Train generative model
 
 ```shell
-python src/GAN_CNNRegression/train.py \
-	--epochs 2 \
-	--batch_size 3 \
-	--noise_dim 100 \
-	--CNN_model_path ./saved_models/cnn_regression/2021.10.17.00.35.47/model/final_model.pt \
-	--bins_number 100 \
-	--no-set_generate_plots 
+python src/hydra/train.py \
+    --lattice_size 128 \
+    --dataset_size 20 \
+    --batch_size 5 \
+    --epochs 10 \
+    --n_conv_cells 2 \
+    --n_convt_cells 5 \
+    --generator_learning_rate 1e-3 \
+    --discriminator_learning_rate 1e-3 \
+    --regularization_strength 1.0 \
+    --hydra_ratio_bce 1.0 \
+    --hydra_ratio_cnn 1.0 \
+    --patience_generator 2 \
+    --noise_dim 100 \
+    --wanted_p 0.5928 \
+    --save_dir ./saved_models/hydra \
+    --CNN_model_path ./saved_models/cnn_regression/2021.10.19.11.09.07/model/final_model.pt
 ``` 
 
 ### Generate configurations with GAN
 
 ```shell
-python src/GAN/generate.py \
-    --num 10 \
-    --data_dir ./data/generated/ \
-    --model_dir ./data/models/gan/ \
+python src/hydra/generate.py \
+    --number_images 10 \
+    --data_dir ./data/generated \
+    --model_dir ./saved_models/hydra/2021.10.17.18.32.10/model/final_model.pt \
     --noise_dim 100
 ```
 

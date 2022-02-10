@@ -137,5 +137,5 @@ class Logger():
                     'generator_loss': self.logs['generator_loss'],
                     'discriminator_loss': self.logs['discriminator_loss'],
                     'discriminator_accuracy': self.logs['discriminator_accuracy']
-                    }
+                }
                 torch.save(checkpoint_dict, os.path.join(self.save_dir_ckpts, 'ckpt_{}.pt'.format(epoch)))
