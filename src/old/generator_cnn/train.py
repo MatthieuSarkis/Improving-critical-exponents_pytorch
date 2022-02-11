@@ -17,7 +17,7 @@ from datetime import datetime
 import json
 import torch
 
-from src.cnn.network import CNN
+from src.cnn.cnn import CNN
 from src.generator_cnn.network import Generator
 
 def main(args):

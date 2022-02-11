@@ -4,14 +4,11 @@
 
 * Python 3.8+
 * torch
-* sklearn
-* scipy
-* tqdm
-* jupyter
-* pandas
+* torchvision
+* numpy
 
 ```shell
-pip install .
+pip install -e .
 ```
 ## Control parameter estimation via CNN
 
@@ -30,7 +27,7 @@ python src/cnn/train.py \
 
 ## Data augmentation via GAN
 
-### Train generative model
+### Train hydra generative model
 
 ```shell
 python src/hydra/train.py \
@@ -52,7 +49,17 @@ python src/hydra/train.py \
     --CNN_model_path ./saved_models/cnn_regression/2022.02.11.15.36.56/model/final_model.pt
 ``` 
 
-### Generate configurations with GAN
+### Train a variational autoencoder
+
+```shell
+python src/vae/train.py \
+    --epochs 15 \
+    --batch_size 64 \
+    --dataset_size 512 \
+    --latent_dim 20
+``` 
+
+### Generate configurations with hydra
 
 ```shell
 python src/hydra/generate.py \

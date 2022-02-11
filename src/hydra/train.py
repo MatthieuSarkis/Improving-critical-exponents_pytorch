@@ -16,15 +16,15 @@ from datetime import datetime
 import json
 import torch
 
-from src.cnn.network import CNN
+from src.cnn.cnn import CNN
 from src.hydra.hydra import Hydra
-from src.data import generate_data_torch
+from src.data import generate_data
 
 def main(args):
     
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
 
-    real_images, _ = generate_data_torch(
+    real_images, _ = generate_data(
         dataset_size=args.dataset_size,
         lattice_size=args.lattice_size,
         p_list=[args.wanted_p],
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     parser.add_argument("--noise_dim", type=int, default=100)
     parser.add_argument("--wanted_p", type=float, default=0.5928)
     parser.add_argument("--save_dir", type=str, default="./saved_models/hydra")
-    parser.add_argument("--CNN_model_path", type=str, default="./saved_models/cnn_regression/2021.10.17.18.29.07/model/final_model.pt")
+    parser.add_argument("--CNN_model_path", type=str, default="./saved_models/cnn/2022.02.11.18.36.08/model/final_model.pt")
     parser.add_argument("--device", type=str, default='cpu')
     parser.add_argument('--set_generate_plots', dest='set_generate_plots', action='store_true')
     parser.add_argument('--no-set_generate_plots', dest='set_generate_plots', action='store_false')
