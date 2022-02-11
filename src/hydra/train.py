@@ -23,8 +23,6 @@ from src.data import generate_data_torch
 def main(args):
     
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
-    with open(os.path.join(save_dir, 'args.json'), 'w') as f:
-        json.dump(vars(args), f, indent=4)
 
     real_images, _ = generate_data_torch(
         dataset_size=args.dataset_size,
@@ -63,6 +61,9 @@ def main(args):
         set_generate_plots=args.set_generate_plots,
         bins_number=args.bins_number
     )
+
+    with open(os.path.join(save_dir, 'args.json'), 'w') as f:
+        json.dump(vars(args), f, indent=4)
         
 if __name__ == "__main__":
 

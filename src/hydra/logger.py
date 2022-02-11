@@ -16,7 +16,7 @@ import time
 import torch
 import torch.nn as nn
 
-from src.generator_cnn.utils import (
+from src.hydra.utils import (
     plot_cnn_histogram, 
     plot_losses,
 )

@@ -51,12 +51,9 @@ def main(args):
         batch_size=args.batch_size,
         save_checkpoints=args.save_checkpoints
     )
-    
+
     with open(os.path.join(save_dir, 'args.json'), 'w') as f:
         json.dump(vars(args), f, indent=4)
-        
-    with open(os.path.join(save_dir, 'loss.json'), 'w') as f:
-        json.dump(model.loss_history, f, indent=4)
 
 if __name__ == '__main__':
 

@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+import json
 import os
 import time
 import torch
@@ -242,3 +243,6 @@ class CNN(nn.Module):
             'model_state_dict': self.state_dict(),
         }
         torch.save(checkpoint_dict, os.path.join(self.save_dir_model, 'final_model.pt'))
+
+        with open(os.path.join(self.save_dir, 'loss.json'), 'w') as f:
+            json.dump(self.loss_history, f, indent=4)
