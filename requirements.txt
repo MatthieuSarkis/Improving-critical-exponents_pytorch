@@ -1,8 +1,4 @@
 torch
 numpy
 matplotlib
-seaborn
-sklearn
-scipy
-tqdm
 jupyter

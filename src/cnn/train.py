@@ -33,11 +33,11 @@ def main(args):
     
     model = CNN(
         lattice_size=args.lattice_size,
-        n_conv_layers=4,
-        n_dense_layers=3,
+        n_conv_cells=4,
+        n_dense_cells=3,
         n_neurons=512,
         dropout_rate=0.0,
-        learning_rate=10e-4,
+        learning_rate=1e-4,
         device=args.device,
         save_dir=save_dir
     )

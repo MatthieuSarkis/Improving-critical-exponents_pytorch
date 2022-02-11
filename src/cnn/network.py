@@ -188,15 +188,15 @@ class CNN(nn.Module):
         test_loss = 0.0
         
         self.eval()
-        with torch.no_grad:
-            for i in range(0, X_test.shape[0], batch_size):
-                indices = permutation[i:i+batch_size]
-                inputs = X_test[indices].to(self.device)
-                labels = y_test[indices].to(self.device)
 
-                outputs = self(inputs)
-                loss = self.criterion(outputs, labels)
-                test_loss += loss.item()
+        for i in range(0, X_test.shape[0], batch_size):
+            
+            indices = permutation[i:i+batch_size]
+            inputs = X_test[indices].to(self.device)
+            labels = y_test[indices].to(self.device)
+            outputs = self(inputs)
+            loss = self.criterion(outputs, labels)
+            test_loss += loss.item()
     
         test_loss /= X_test.shape[0]
         self.loss_history['test'].append(test_loss)

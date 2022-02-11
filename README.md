@@ -11,14 +11,14 @@
 * pandas
 
 ```shell
-python setup.py install
+pip install .
 ```
 ## Control parameter estimation via CNN
 
 It possible to train a CNN with the following command:
 
  ```shell
-python src/CNN_regression/train.py \
+python src/cnn/train.py \
     --dataset_size 1024 \
     --lattice_size 128 \
     --batch_size 64 \
