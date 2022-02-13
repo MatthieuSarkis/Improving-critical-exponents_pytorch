@@ -44,7 +44,8 @@ def main(args):
         latent_dim=args.latent_dim, 
         hidden_dim=args.hidden_dim,
         properties_dim=args.properties_dim,
-        kl_bce_ratio=0.5,
+        kl_ratio=args.kl_ratio,
+        reg_ratio=args.reg_ratio,
         network_name='VAE',
         learning_rate=args.learning_rate,
         device=args.device,
@@ -69,6 +70,8 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--learning_rate", type=float, default=1e-3)
     parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--kl_ratio", type=float, default=0.5)
+    parser.add_argument("--reg_ratio", type=float, default=1.0)
     parser.add_argument("--lattice_size", type=int, default=128)
     parser.add_argument("--hidden_dim", type=int, default=400)
     parser.add_argument("--latent_dim", type=int, default=20)
