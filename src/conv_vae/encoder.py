@@ -37,6 +37,9 @@ class Encoder(nn.Module):
         self.fc_mu = nn.Linear(self._get_dimension(), latent_dim)
         self.fc_log_var = nn.Linear(self._get_dimension(), latent_dim)
 
+        nn.init.constant_(self.fc_log_var.weight.data, 0.0)
+        nn.init.constant_(self.fc_log_var.bias.data, 0.0)
+
     def forward(
         self, 
         x: torch.tensor, 
@@ -47,10 +50,13 @@ class Encoder(nn.Module):
         h = torch.cat([x, p], dim=1) # concatenate along the color channel
         h = self.conv_cell(h)
         h = torch.flatten(h, start_dim=1) # don't flatten along the batch dimension
-        z_mu = self.fc_mu(h)
-        z_var = self.fc_log_var(h)
+        mu = self.fc_mu(h)
+        log_var = self.fc_log_var(h)
 
-        return z_mu, z_var
+        #log_var = torch.clamp(log_var, min=-10.0, max=50.0) 
+        log_var = (lambda y: torch.tanh(1e-3 * y))(log_var)
+
+        return mu, log_var
 
     def _get_dimension(self) -> int:
         

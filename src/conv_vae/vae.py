@@ -187,8 +187,6 @@ class Conv_VAE(nn.Module):
             self.optimizer.zero_grad()
             outputs, mu, log_var = self(inputs, properties)
 
-            print(log_var.exp())
-
             loss = self.criterion(outputs, inputs, mu, log_var)
             loss.backward()
             self.optimizer.step()
