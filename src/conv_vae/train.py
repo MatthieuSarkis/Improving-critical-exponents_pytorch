@@ -38,8 +38,6 @@ def main(args):
         save_dir=None
     )
 
-    print(X_train.shape)
-
     # Instanciating and training the model
     vae = Conv_VAE(
         lattice_size=args.lattice_size,
@@ -68,7 +66,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
 
     parser.add_argument("--dataset_size", type=int, default=2048)
-    parser.add_argument("--save_dir", type=str, default="./saved_models/vae")
+    parser.add_argument("--save_dir", type=str, default="./saved_models/conv_vae")
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--learning_rate", type=float, default=1e-3)
     parser.add_argument("--batch_size", type=int, default=64)

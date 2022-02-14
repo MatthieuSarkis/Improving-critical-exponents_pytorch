@@ -19,7 +19,7 @@ class VAE_loss(nn.Module):
     def __init__(
         self,
         kl_ratio: float=0.5,
-        reg_ratio: float=1.0,
+        reg_ratio: float=0.5,
     ) -> None:
 
         super(VAE_loss, self).__init__()
