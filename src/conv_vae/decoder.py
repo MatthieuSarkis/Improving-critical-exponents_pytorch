@@ -23,10 +23,10 @@ class Decoder(nn.Module):
     def __init__(
         self, 
         hidden_dim: int,
-        latent_dim: int, 
-        properties_dim: int, 
+        latent_dim: int,  
         lattice_size: int,
-        save_dir_images,
+        save_dir_images: str,
+        properties_dim: int = None,
         device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
     ) -> None:
 
@@ -36,8 +36,9 @@ class Decoder(nn.Module):
         self.hidden_dim = hidden_dim
         self.properties_dim = properties_dim
         self.latent_dim = latent_dim
+        self.input_dim = (latent_dim + properties_dim) if properties_dim is not None else latent_dim 
 
-        self.fc = nn.Linear(latent_dim + properties_dim, self.hidden_dim * (self.lattice_size//2) * (self.lattice_size//2))
+        self.fc = nn.Linear(self.input_dim, self.hidden_dim * (self.lattice_size//2) * (self.lattice_size//2))
         self.bn = nn.BatchNorm1d(self.hidden_dim * (self.lattice_size//2) * (self.lattice_size//2))
         self.convt_cell = ConvTransposeCell(input_dim=self.hidden_dim, output_dim=1)
     
@@ -47,11 +48,13 @@ class Decoder(nn.Module):
     def forward(
         self, 
         z: torch.tensor, 
-        p: torch.tensor,
+        p: torch.tensor = None,
     ) -> torch.tensor:
 
-        h = torch.cat([z, p], dim=1)
-        h = self.fc(h)
+        if p is not None:
+            z = torch.cat([z, p], dim=1)
+
+        h = self.fc(z)
         h = F.leaky_relu_(h)
         h = self.bn(h)
         h = h.view(-1, self.hidden_dim, self.lattice_size//2, self.lattice_size//2)
@@ -63,29 +66,31 @@ class Decoder(nn.Module):
     def sample_images(
         self,
         n_images_per_p: int,
-        properties: list,
+        properties: list = None,
         directory_path: str='',
         epoch: int=None,
     ) -> None:
 
+        l = len(properties) if properties is not None else 1
+
         with torch.no_grad():
     
-            for i in range(len(properties)):
+            for i in range(l):
 
-                p = torch.full(size=(n_images_per_p, self.properties_dim), fill_value=properties[i]).to(self.device)
+                p = torch.full(size=(n_images_per_p, self.properties_dim), fill_value=properties[i]).to(self.device) if self.properties_dim is not None else None
                 z = torch.randn(n_images_per_p, self.latent_dim).to(self.device)
 
                 generated = self(z, p)
                 generated = torch.sign(2 * generated - 1)
 
             if epoch is not None:
-                name = 'generated_epoch={}_p={:.2f}'.format(epoch, properties[i])
+                name = 'generated_epoch={}_p={:.2f}'.format(epoch, properties[i]) if properties is not None else 'generated_epoch={}'.format(epoch)
                 save_image(generated, os.path.join(directory_path, name) + '.png')
                 return
 
             else:
                 generated_numpy = generated.numpy()
-                name = 'p={0:.2f}'.format(properties[i])
+                name = 'generated_p={0:.2f}'.format(properties[i]) if properties is not None else 'generated'
                 np.save(os.path.join(directory_path, name), generated_numpy)
 
             

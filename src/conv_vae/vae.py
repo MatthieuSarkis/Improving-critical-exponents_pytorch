@@ -30,9 +30,9 @@ class Conv_VAE(nn.Module):
         self, 
         hidden_dim: int,
         latent_dim: int, 
-        properties_dim: int, 
         network_name: str,
         lattice_size: int,
+        properties_dim: int = None, 
         kl_ratio: float = 1.0,
         reg_ratio: float = 1.0,
         learning_rate: float = 1e-3,
@@ -78,11 +78,12 @@ class Conv_VAE(nn.Module):
     def forward(
         self, 
         x: torch.tensor, 
-        p: torch.tensor,
+        p: torch.tensor = None,
     ) -> Tuple[torch.tensor, float, float]:
 
         x = x.to(self.device)
-        p = p.to(self.device)
+        if p is not None:
+            p = p.to(self.device)
 
         mu, log_var = self.encoder.forward(x, p)
         z = self._reparameterize(mu, log_var)
@@ -92,13 +93,14 @@ class Conv_VAE(nn.Module):
 
     def check_reconstruction(
         self,
-        inputs: torch.tensor,
-        properties: torch.tensor,
         epoch: int,
+        inputs: torch.tensor,
+        properties: torch.tensor = None,
     ) -> None:
     
         inputs = inputs.to(self.device)
-        properties = properties.to(self.device)
+        if properties is not None:
+            properties = properties.to(self.device)
 
         with torch.no_grad():
 
@@ -129,15 +131,17 @@ class Conv_VAE(nn.Module):
     def _train(
         self,
         epochs: int,
+        batch_size: int,
         X_train: torch.tensor,
         X_test: torch.tensor,
-        y_train: torch.tensor,
-        y_test: torch.tensor,
-        batch_size: int,
-        save_checkpoints: bool=False,
+        y_train: torch.tensor = None,
+        y_test: torch.tensor = None,
+        save_checkpoints: bool = False,
     ) -> None:
     
-        X_train, X_test, y_train, y_test = X_train.to(self.device), X_test.to(self.device), y_train.to(self.device), y_test.to(self.device)
+        X_train, X_test = X_train.to(self.device), X_test.to(self.device)
+        if y_train is not None and y_test is not None:
+            y_train, y_test = y_train.to(self.device), y_test.to(self.device)
         X_train, X_test = (X_train + 1) / 2, (X_test + 1) / 2
 
         self.loss_history = {
@@ -153,18 +157,18 @@ class Conv_VAE(nn.Module):
             
             initial_time = time.time()
             
-            self._train_one_epoch(X_train, y_train, batch_size)
-            self._test_one_epoch(X_test, y_test, batch_size)
+            self._train_one_epoch(batch_size, X_train, y_train)
+            self._test_one_epoch(batch_size, X_test, y_test)
 
             self.check_reconstruction(
                 inputs=X_test[:5], 
-                properties=y_test[:5], 
+                properties=y_test[:5] if y_test is not None else None, 
                 epoch=epoch
             )
             
             self.decoder.sample_images(
                 n_images_per_p=8, 
-                properties=[0.5928], 
+                properties=[0.5928] if y_test is not None else None, 
                 directory_path=self.save_dir_images, 
                 epoch=epoch
             )
@@ -201,9 +205,9 @@ class Conv_VAE(nn.Module):
 
     def _train_one_epoch(
         self,
-        X_train: torch.tensor,
-        y_train: torch.tensor,
         batch_size: int,
+        X_train: torch.tensor,
+        y_train: torch.tensor = None,
     ) -> None:
         r"""Performs one epoch of training"""
 
@@ -216,7 +220,7 @@ class Conv_VAE(nn.Module):
 
             indices = permutation[i:i+batch_size]
             inputs = X_train[indices].to(self.device)
-            properties = y_train[indices].to(self.device)
+            properties = y_train[indices].to(self.device) if y_train is not None else None
 
             self.optimizer.zero_grad()
             outputs, mu, log_var = self(inputs, properties)
@@ -237,9 +241,9 @@ class Conv_VAE(nn.Module):
 
     def _test_one_epoch(
         self,
-        X_test: torch.tensor,
-        y_test: torch.tensor,
         batch_size: int,
+        X_test: torch.tensor,
+        y_test: torch.tensor = None,
     ) -> None:
 
         permutation = torch.randperm(X_test.shape[0])
@@ -251,7 +255,7 @@ class Conv_VAE(nn.Module):
 
             indices = permutation[i:i+batch_size]
             inputs = X_test[indices].to(self.device)
-            properties = y_test[indices].to(self.device)
+            properties = y_test[indices].to(self.device) if y_test is not None else None
 
             outputs, mu, log_var = self(inputs, properties)
             loss, reconstruction_loss = self.criterion(outputs, inputs, mu, log_var)

@@ -33,7 +33,7 @@ def main(args):
     X_train, y_train, X_test, y_test = generate_data(
         dataset_size=args.dataset_size,
         lattice_size=args.lattice_size,
-        p_list=None,
+        p_list=None if args.use_property else [0.5928],
         split=True,
         save_dir=None
     )
@@ -43,7 +43,7 @@ def main(args):
         lattice_size=args.lattice_size,
         latent_dim=args.latent_dim, 
         hidden_dim=args.hidden_dim,
-        properties_dim=y_train.shape[1],
+        properties_dim=y_train.shape[1] if args.use_property else None,
         kl_ratio=args.kl_ratio,
         reg_ratio=args.reg_ratio,
         network_name='Convolutional_VAE',
@@ -54,11 +54,11 @@ def main(args):
 
     vae._train(
         epochs=args.epochs,
+        batch_size=args.batch_size,
         X_train=X_train,
         X_test=X_test,
-        y_train=y_train,
-        y_test=y_test,
-        batch_size=args.batch_size
+        y_train=y_train if args.use_property else None,
+        y_test=y_test if args.use_property else None
     )
 
 if __name__ == "__main__":
@@ -76,6 +76,9 @@ if __name__ == "__main__":
     parser.add_argument("--hidden_dim", type=int, default=400)
     parser.add_argument("--latent_dim", type=int, default=20)
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument('--use_property', dest='use_property', action='store_true')
+    parser.add_argument('--no-use_property', dest='use_property', action='store_false')
+    parser.set_defaults(use_property=False)
     parser.add_argument('--save_checkpoints', dest='save_checkpoints', action='store_true')
     parser.add_argument('--no-save_checkpoints', dest='save_checkpoints', action='store_false')
     parser.set_defaults(save_checkpoints=True)

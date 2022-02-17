@@ -1,33 +1,31 @@
-# Improving critical exponent estimations with Generative Adversarial Networks
+# Improving critical exponent estimations with Generative Networks
 
 ## Requirements
 
 * Python 3.8+
-* torch
-* torchvision
 * numpy
+* torch
 
 ```shell
 pip install -e .
 ```
-## Control parameter estimation via CNN
-
-It possible to train a CNN with the following command:
+## Control parameter estimation with Convolutional Neural Networks
 
  ```shell
 python src/cnn/train.py \
-    --dataset_size 1024 \
+    --save_dir ./saved_models/cnn\
     --lattice_size 128 \
-    --batch_size 64 \
-    --epochs 40 \
-    --learning_rate 1e-4 
+    --dataset_size 2048 \
+    --epochs 64 \
+    --batch_size 32 \
+    --dropout_rate 0.0 \
+    --learning_rate 1e-3 \
+    --device cpu \
+    --save_checkpoints
  ```
+## Data augmentation with HYDRA
 
- The trained CNN is used to as one of the two heads in Hydra.
-
-## Data augmentation via GAN
-
-### Train hydra generative model
+### Train HYDRA
 
 ```shell
 python src/hydra/train.py \
@@ -48,18 +46,7 @@ python src/hydra/train.py \
     --save_dir ./saved_models/hydra \
     --CNN_model_path ./saved_models/cnn_regression/2022.02.11.15.36.56/model/final_model.pt
 ``` 
-
-### Train a variational autoencoder
-
-```shell
-python src/vae/train.py \
-    --epochs 15 \
-    --batch_size 64 \
-    --dataset_size 512 \
-    --latent_dim 20
-``` 
-
-### Generate configurations with hydra
+### Generate configurations with a trained HYDRA
 
 ```shell
 python src/hydra/generate.py \
@@ -67,6 +54,38 @@ python src/hydra/generate.py \
     --data_dir ./data/generated \
     --model_dir ./saved_models/hydra/2021.10.17.18.32.10/model/final_model.pt \
     --noise_dim 100
+```
+
+## Data augmentation with Convolutional Variational Auto-Encoder (ConvVAE)
+
+
+### Train ConvVAE
+
+```shell
+python src/conv_vae/train.py \
+    --dataset_size 512 \
+    --save_dir ./saved_models/conv_vae \
+    --epochs 64 \
+    --learning_rate 1e-3 \
+    --batch_size 16 \
+    --lattice_size 32 \
+    --reg_ratio 1.0 \
+    --kl_ratio 1.0 \
+    --hidden_dim 512 \
+    --latent_dim 16 \
+    --device cpu \
+    --no-use_property \
+    --save_checkpoints
+``` 
+
+### Generate configurations with a trained ConvVAE
+
+```shell
+python src/conv_vae/generate.py \
+    --n_images_per_p 8 \
+    --properties 0.5928 \
+    --data_dir ./data/conv_vae_generated \
+    --model_dir ./saved_models/conv_vae/2022.02.17.13.26.37/Convolutional_VAE_model/final_model.pt
 ```
 
 ## License

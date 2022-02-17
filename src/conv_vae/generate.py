@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     parser = ArgumentParser()
 
-    parser.add_argument("--n_images_per_p", type=int, default=10)
+    parser.add_argument("--n_images_per_p", type=int, default=8)
     parser.add_argument("--properties", nargs="*", type=float, default=0.5928)
     parser.add_argument("--data_dir", type=str, default="./data/conv_vae_generated")
     parser.add_argument("--model_dir", type=str, default="./saved_models/conv_vae/2022.02.17.13.26.37/Convolutional_VAE_model/final_model.pt")
