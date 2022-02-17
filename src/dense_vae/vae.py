@@ -19,9 +19,9 @@ from torch import nn
 from torchvision.utils import save_image
 from typing import Tuple
 
-from src.vae.encoder import Encoder
-from src.vae.decoder import Decoder
-from src.vae.loss_function import VAE_loss
+from src.dense_vae.encoder import Encoder
+from src.dense_vae.decoder import Decoder
+from src.dense_vae.loss_function import VAE_loss
 class VAE(nn.Module):
 
     def __init__(

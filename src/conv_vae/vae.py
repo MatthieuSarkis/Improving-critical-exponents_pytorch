@@ -22,6 +22,7 @@ from typing import Tuple
 from src.conv_vae.encoder import Encoder
 from src.conv_vae.decoder import Decoder
 from src.conv_vae.loss_function import VAE_loss
+from src.utils import plot_losses
 
 class Conv_VAE(nn.Module):
 
@@ -80,6 +81,9 @@ class Conv_VAE(nn.Module):
         p: torch.tensor,
     ) -> Tuple[torch.tensor, float, float]:
 
+        x = x.to(self.device)
+        p = p.to(self.device)
+
         mu, log_var = self.encoder.forward(x, p)
         z = self._reparameterize(mu, log_var)
         reconstructed = self.decoder.forward(z, p)
@@ -90,9 +94,12 @@ class Conv_VAE(nn.Module):
         self,
         inputs: torch.tensor,
         properties: torch.tensor,
-        file_name: str='',
+        epoch: int,
     ) -> None:
     
+        inputs = inputs.to(self.device)
+        properties = properties.to(self.device)
+
         with torch.no_grad():
 
             outputs, _, _ = self(inputs, properties)
@@ -100,11 +107,11 @@ class Conv_VAE(nn.Module):
             inputs = 2 * inputs - 1
             outputs = torch.sign(2 * outputs - 1)
 
-            comparison = torch.cat([inputs, outputs])
+            comparison = torch.cat([inputs, outputs]).to('cpu')
 
             save_image(
                 comparison, 
-                self.save_dir_images + '/reconstruction_' + file_name + '.png', 
+                os.path.join(self.save_dir_images, 'reconstruction_epoch={}.png'.format(epoch)), 
                 nrow=5
             )
 
@@ -130,9 +137,17 @@ class Conv_VAE(nn.Module):
         save_checkpoints: bool=False,
     ) -> None:
     
+        X_train, X_test, y_train, y_test = X_train.to(self.device), X_test.to(self.device), y_train.to(self.device), y_test.to(self.device)
         X_train, X_test = (X_train + 1) / 2, (X_test + 1) / 2
 
-        self.loss_history = {'train': [], 'test': []}
+        self.loss_history = {
+            'train': [], 
+            'test': [], 
+            'train_reconstruction': [], 
+            'test_reconstruction': [], 
+            'train_kl': [], 
+            'test_kl': []
+        }
     
         for epoch in range(epochs):
             
@@ -140,8 +155,21 @@ class Conv_VAE(nn.Module):
             
             self._train_one_epoch(X_train, y_train, batch_size)
             self._test_one_epoch(X_test, y_test, batch_size)
-            self.check_reconstruction(inputs=X_test[:5], properties=y_test[:5], file_name=str(epoch))
-            self.decoder.sample_images(n_images=8, file_name=str(epoch))
+
+            if epoch % 5 == 0:
+
+                self.check_reconstruction(
+                    inputs=X_test[:5], 
+                    properties=y_test[:5], 
+                    epoch=epoch
+                )
+
+                self.decoder.sample_images(
+                    n_images_per_p=8, 
+                    properties=[0.5928], 
+                    directory_path=self.save_dir_images, 
+                    epoch=epoch
+                )
 
             print("Epoch: {}/{}, Train Loss: {:.1f}, Test Loss: {:.1f}, Time: {:.2f}s".format(epoch+1, epochs, self.loss_history['train'][-1], self.loss_history['test'][-1], time.time()-initial_time))
 
@@ -157,6 +185,14 @@ class Conv_VAE(nn.Module):
                     }
                     torch.save(checkpoint_dict, os.path.join(self.save_dir_ckpts, 'ckpt_{}.pt'.format(epoch)))
 
+            with open(os.path.join(self.save_dir, 'loss.json'), 'w') as f:
+                json.dump(self.loss_history, f, indent=4)
+
+            plot_losses(
+                path_to_loss_history=os.path.join(self.save_dir, 'loss.json'),
+                save_directory=os.path.join(self.save_dir, 'losses')
+            )
+
         checkpoint_dict = {
             'constructor_args': self.constructor_args,
             'model_state_dict': self.state_dict(),
@@ -164,9 +200,6 @@ class Conv_VAE(nn.Module):
         }
 
         torch.save(checkpoint_dict, os.path.join(self.save_dir_model, 'final_model.pt'))
-        
-        with open(os.path.join(self.save_dir, 'loss.json'), 'w') as f:
-            json.dump(self.loss_history, f, indent=4)
 
     def _train_one_epoch(
         self,
@@ -178,8 +211,11 @@ class Conv_VAE(nn.Module):
 
         permutation = torch.randperm(X_train.shape[0])
         train_loss = 0.0
+        train_reconstruction_loss = 0.0 
         self.train()
+
         for i in range(0, X_train.shape[0], batch_size):
+
             indices = permutation[i:i+batch_size]
             inputs = X_train[indices].to(self.device)
             properties = y_train[indices].to(self.device)
@@ -187,13 +223,19 @@ class Conv_VAE(nn.Module):
             self.optimizer.zero_grad()
             outputs, mu, log_var = self(inputs, properties)
 
-            loss = self.criterion(outputs, inputs, mu, log_var)
-            loss.backward()
+            total_loss, reconstruction_loss = self.criterion(outputs, inputs, mu, log_var)
+            total_loss.backward()
             self.optimizer.step()
-            train_loss += loss.item()
+            train_loss += total_loss.item()
+            train_reconstruction_loss += reconstruction_loss.item()
 
-        train_loss /= X_train.shape[0]   
+        train_loss /= X_train.shape[0] 
+        train_reconstruction_loss /= X_train.shape[0]  
+        train_kl_loss = train_loss - train_reconstruction_loss
+
         self.loss_history['train'].append(train_loss)
+        self.loss_history['train_reconstruction'].append(train_reconstruction_loss)
+        self.loss_history['train_kl'].append(train_kl_loss)
 
     def _test_one_epoch(
         self,
@@ -204,15 +246,24 @@ class Conv_VAE(nn.Module):
 
         permutation = torch.randperm(X_test.shape[0])
         test_loss = 0.0
+        test_reconstruction_loss = 0.0 
         self.eval()
+
         for i in range(0, X_test.shape[0], batch_size):
+
             indices = permutation[i:i+batch_size]
             inputs = X_test[indices].to(self.device)
             properties = y_test[indices].to(self.device)
 
             outputs, mu, log_var = self(inputs, properties)
-            loss = self.criterion(outputs, inputs, mu, log_var)
+            loss, reconstruction_loss = self.criterion(outputs, inputs, mu, log_var)
             test_loss += loss.item()
+            test_reconstruction_loss += reconstruction_loss.item()
 
         test_loss /= X_test.shape[0]
+        test_reconstruction_loss /= X_test.shape[0]
+        test_kl_loss = test_loss - test_reconstruction_loss
+
         self.loss_history['test'].append(test_loss)
+        self.loss_history['test_reconstruction'].append(test_reconstruction_loss)
+        self.loss_history['test_kl'].append(test_kl_loss)

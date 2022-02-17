@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+import os
+import numpy as np
 import torch
 import torch.utils.data
 from torch import nn
@@ -60,18 +62,33 @@ class Decoder(nn.Module):
 
     def sample_images(
         self,
-        n_images: int,
-        file_name: str='',
+        n_images_per_p: int,
+        properties: list,
+        directory_path: str='',
+        epoch: int=None,
     ) -> None:
 
         with torch.no_grad():
+    
+            for i in range(len(properties)):
 
-            p = torch.full(size=(n_images, self.properties_dim), fill_value=0.5928).to(self.device)
-            z = torch.randn(n_images, self.latent_dim).to(self.device)
-            generated = self(z, p)
-            generated = torch.sign(2 * generated - 1)
+                p = torch.full(size=(n_images_per_p, self.properties_dim), fill_value=properties[i]).to(self.device)
+                z = torch.randn(n_images_per_p, self.latent_dim).to(self.device)
 
-            save_image(generated, self.save_dir_images + '/samples_' + file_name + '.png')
+                generated = self(z, p)
+                generated = torch.sign(2 * generated - 1)
+
+            if epoch is not None:
+                name = 'generated_epoch={}_p={:.2f}'.format(epoch, properties[i])
+                save_image(generated, os.path.join(directory_path, name) + '.png')
+                return
+
+            else:
+                generated_numpy = generated.numpy()
+                name = 'p={0:.2f}'.format(properties[i])
+                np.save(os.path.join(directory_path, name), generated_numpy)
+
+            
 
 
 class ConvTransposeCell(nn.Module):

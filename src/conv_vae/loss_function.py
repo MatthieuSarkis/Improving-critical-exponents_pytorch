@@ -13,6 +13,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Tuple
 
 class VAE_loss(nn.Module):
 
@@ -32,11 +33,11 @@ class VAE_loss(nn.Module):
         target: torch.tensor, 
         mu: float, 
         log_var: float,
-    ) -> torch.tensor:
+    ) -> Tuple[torch.tensor, torch.tensor]:
 
         reconstruction = F.binary_cross_entropy(reconstructed, target, reduction='sum')
         kld = torch.sum(log_var.exp() + mu.pow(2) - 1 - log_var)
         regularization = torch.sum(torch.full_like(reconstructed, 1, dtype=torch.float32) - torch.abs(2 * reconstructed - 1))
         regularization /= torch.numel(reconstructed[0])
 
-        return reconstruction + self.kl_ratio * kld + self.reg_ratio * regularization
+        return reconstruction + self.kl_ratio * kld + self.reg_ratio * regularization, reconstruction

@@ -17,7 +17,7 @@ import os
 import torch
 
 from src.data import generate_data
-from src.vae.vae import VAE
+from src.dense_vae.vae import VAE
 
 def main(args):
 
