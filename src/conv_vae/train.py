@@ -43,7 +43,7 @@ def main(args):
         lattice_size=args.lattice_size,
         latent_dim=args.latent_dim, 
         hidden_dim=args.hidden_dim,
-        properties_dim=args.properties_dim,
+        properties_dim=y_train.shape[1],
         kl_ratio=args.kl_ratio,
         reg_ratio=args.reg_ratio,
         network_name='Convolutional_VAE',
@@ -58,7 +58,7 @@ def main(args):
         X_test=X_test,
         y_train=y_train,
         y_test=y_test,
-        batch_size=args.batch_size,
+        batch_size=args.batch_size
     )
 
 if __name__ == "__main__":
@@ -75,7 +75,6 @@ if __name__ == "__main__":
     parser.add_argument("--lattice_size", type=int, default=128)
     parser.add_argument("--hidden_dim", type=int, default=400)
     parser.add_argument("--latent_dim", type=int, default=20)
-    parser.add_argument("--properties_dim", type=int, default=1)
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument('--save_checkpoints', dest='save_checkpoints', action='store_true')
     parser.add_argument('--no-save_checkpoints', dest='save_checkpoints', action='store_false')

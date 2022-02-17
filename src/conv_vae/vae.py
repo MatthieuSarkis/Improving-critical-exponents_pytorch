@@ -156,20 +156,18 @@ class Conv_VAE(nn.Module):
             self._train_one_epoch(X_train, y_train, batch_size)
             self._test_one_epoch(X_test, y_test, batch_size)
 
-            if epoch % 5 == 0:
-
-                self.check_reconstruction(
-                    inputs=X_test[:5], 
-                    properties=y_test[:5], 
-                    epoch=epoch
-                )
-
-                self.decoder.sample_images(
-                    n_images_per_p=8, 
-                    properties=[0.5928], 
-                    directory_path=self.save_dir_images, 
-                    epoch=epoch
-                )
+            self.check_reconstruction(
+                inputs=X_test[:5], 
+                properties=y_test[:5], 
+                epoch=epoch
+            )
+            
+            self.decoder.sample_images(
+                n_images_per_p=8, 
+                properties=[0.5928], 
+                directory_path=self.save_dir_images, 
+                epoch=epoch
+            )
 
             print("Epoch: {}/{}, Train Loss: {:.1f}, Test Loss: {:.1f}, Time: {:.2f}s".format(epoch+1, epochs, self.loss_history['train'][-1], self.loss_history['test'][-1], time.time()-initial_time))
 
