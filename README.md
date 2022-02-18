@@ -2,6 +2,7 @@
 
 ## Requirements
 
+* c++17
 * Python 3.8+
 * numpy
 * torch
@@ -9,9 +10,19 @@
 ```shell
 pip install -e .
 ```
+
+### Generating Ising configurations
+
+Modify src/data_factory/ising/params.h as needed, then compile and run as follows:
+
+```shell
+g++ src/data_factory/ising/main.cpp -std=c++17 -O3 -o src/data_factory/ising/ising
+./src/data_factory/ising/ising
+```
+
 ## Control parameter estimation with Convolutional Neural Networks
 
- ```shell
+```shell
 python src/cnn/train.py \
     --save_dir ./saved_models/cnn\
     --lattice_size 128 \
@@ -22,7 +33,7 @@ python src/cnn/train.py \
     --learning_rate 1e-3 \
     --device cpu \
     --save_checkpoints
- ```
+```
 ## Data augmentation with HYDRA
 
 ### Train HYDRA

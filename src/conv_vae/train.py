@@ -13,6 +13,7 @@
 from argparse import ArgumentParser
 from datetime import datetime
 import json
+import numpy as np
 import os
 import torch
 
@@ -30,13 +31,21 @@ def main(args):
         json.dump(vars(args), f, indent=4)
 
     # Importing the data
-    X_train, y_train, X_test, y_test = generate_data(
-        dataset_size=args.dataset_size,
-        lattice_size=args.lattice_size,
-        p_list=None if args.use_property else [0.5928],
-        split=True,
-        save_dir=None
-    )
+    # For percolation
+    #X_train, y_train, X_test, y_test = generate_data(
+    #    dataset_size=args.dataset_size,
+    #    lattice_size=args.lattice_size,
+    #    p_list=None if args.use_property else [0.5928],
+    #    split=True,
+    #    save_dir=None
+    #)
+
+    # For Ising
+    with open('./data/ising/L=64/T=2.2257.bin', 'rb') as f:
+       X = np.frombuffer(f.read(), np.int8, offset=0)
+       y = np.full(shape=(X.shape[0], 1), fill_value=2.2257)
+
+    exit()
 
     # Instanciating and training the model
     vae = Conv_VAE(

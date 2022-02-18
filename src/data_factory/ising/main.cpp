@@ -28,6 +28,7 @@
 #include "utils.h"
 
 using namespace std;
+namespace fs = std::filesystem;
 
 int main()
 {
@@ -35,9 +36,10 @@ int main()
     stringstream ss;
     ss.setf(ios::fixed);
     ss << "L=" << L;
-    dir_name = "./generated_data/" + ss.str();
-    std::filesystem::create_directory("./generated_data");
-    std::filesystem::create_directory(dir_name);
+    dir_name = "./data/ising/" + ss.str();
+    fs::create_directory("./data");
+    fs::create_directory("./data/ising");
+    fs::create_directory(dir_name);
 
     unsigned seed = static_cast<unsigned int>(chrono::steady_clock::now().time_since_epoch().count());
     
