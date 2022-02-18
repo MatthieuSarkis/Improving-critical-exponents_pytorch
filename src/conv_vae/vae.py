@@ -14,7 +14,6 @@ import json
 import time
 import os
 import torch
-import torch.utils.data
 from torch import nn
 from torchvision.utils import save_image
 from typing import Tuple
@@ -112,8 +111,8 @@ class Conv_VAE(nn.Module):
             comparison = torch.cat([inputs, outputs]).to('cpu')
 
             save_image(
-                comparison, 
-                os.path.join(self.save_dir_images, 'reconstruction_epoch={}.png'.format(epoch)), 
+                tensor=comparison, 
+                fp=os.path.join(self.save_dir_images, 'reconstruction_epoch={}.png'.format(epoch)), 
                 nrow=5
             )
 
@@ -209,7 +208,6 @@ class Conv_VAE(nn.Module):
         X_train: torch.tensor,
         y_train: torch.tensor = None,
     ) -> None:
-        r"""Performs one epoch of training"""
 
         permutation = torch.randperm(X_train.shape[0])
         train_loss = 0.0

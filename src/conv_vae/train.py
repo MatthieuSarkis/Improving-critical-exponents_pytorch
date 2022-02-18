@@ -16,7 +16,7 @@ import json
 import os
 import torch
 
-from src.data import generate_data
+from src.data_factory.percolation import generate_data
 from src.conv_vae.vae import Conv_VAE
 
 def main(args):
@@ -67,14 +67,14 @@ if __name__ == "__main__":
 
     parser.add_argument("--dataset_size", type=int, default=2048)
     parser.add_argument("--save_dir", type=str, default="./saved_models/conv_vae")
-    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--epochs", type=int, default=32)
     parser.add_argument("--learning_rate", type=float, default=1e-3)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--kl_ratio", type=float, default=0.5)
     parser.add_argument("--reg_ratio", type=float, default=1.0)
     parser.add_argument("--lattice_size", type=int, default=128)
-    parser.add_argument("--hidden_dim", type=int, default=400)
-    parser.add_argument("--latent_dim", type=int, default=20)
+    parser.add_argument("--hidden_dim", type=int, default=512)
+    parser.add_argument("--latent_dim", type=int, default=32)
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument('--use_property', dest='use_property', action='store_true')
     parser.add_argument('--no-use_property', dest='use_property', action='store_false')

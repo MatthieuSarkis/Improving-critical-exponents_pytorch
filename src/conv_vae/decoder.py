@@ -13,7 +13,6 @@
 import os
 import numpy as np
 import torch
-import torch.utils.data
 from torch import nn
 import torch.nn.functional as F
 from torchvision.utils import save_image
@@ -94,8 +93,6 @@ class Decoder(nn.Module):
                 np.save(os.path.join(directory_path, name), generated_numpy)
 
             
-
-
 class ConvTransposeCell(nn.Module):
     
     def __init__(

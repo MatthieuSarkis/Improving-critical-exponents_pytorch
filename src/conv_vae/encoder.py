@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 import torch
-import torch.utils.data
 from torch import nn
 import torch.nn.functional as F
 from typing import Tuple
@@ -49,8 +48,8 @@ class Encoder(nn.Module):
 
         if p is not None:
             p = p.view(-1, 1, 1, 1).repeat(1, 1, self.lattice_size, self.lattice_size)
-            x = torch.cat([x, p], dim=1)
-             # concatenate along the color channel
+            x = torch.cat([x, p], dim=1) # concatenate along the color channel
+            
         h = self.conv_cell(x)
         h = torch.flatten(h, start_dim=1) # don't flatten along the batch dimension
         mu = self.fc_mu(h)
