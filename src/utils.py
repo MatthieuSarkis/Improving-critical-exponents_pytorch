@@ -12,6 +12,29 @@
 
 import json
 import matplotlib.pyplot as plt
+import torch
+from typing import Tuple
+
+def train_test_split(
+    X: torch.tensor,
+    y: torch.tensor,
+    validation_fraction: float = 0.2,
+) -> Tuple[torch.tensor, torch.tensor, torch.tensor, torch.tensor]:
+    
+    dataset_size = y.shape[0]
+    
+    idx = torch.randperm(dataset_size)
+    X = X[idx]
+    y = y[idx]
+    
+    split_idx = int(dataset_size * (1 - validation_fraction))
+    
+    X_train = X[:split_idx]
+    y_train = y[:split_idx]
+    X_test = X[split_idx:]
+    y_test = y[split_idx:]
+    
+    return X_train, y_train, X_test, y_test
 
 def plot_losses(
     path_to_loss_history: str,

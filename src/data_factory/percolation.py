@@ -23,7 +23,7 @@ def percolation_configuration(
     spin = (np.random.random(size=(L,L)) < p).astype(np.int8)
     return 2 * spin - 1
 
-def generate_data(
+def generate_percolation_data(
     dataset_size, 
     lattice_size=128, 
     p_list=None, 

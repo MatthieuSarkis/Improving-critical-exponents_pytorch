@@ -13,39 +13,39 @@
 from argparse import ArgumentParser
 from datetime import datetime
 import json
-import numpy as np
 import os
 import torch
 
-from src.data_factory.percolation import generate_data
+from src.data_factory.percolation import generate_percolation_data
 from src.conv_vae.vae import Conv_VAE
+from src.utils import train_test_split
 
 def main(args):
 
     # Preparing the directory to save all the logs of the run
-    save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
+    save_dir = os.path.join(args.save_dir, args.stat_phys_model, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
     os.makedirs(save_dir, exist_ok=True)
     
     # Saving the command line arguments of the run for future reference
     with open(os.path.join(save_dir, 'args.json'), 'w') as f:
         json.dump(vars(args), f, indent=4)
 
-    # Importing the data
-    # For percolation
-    #X_train, y_train, X_test, y_test = generate_data(
-    #    dataset_size=args.dataset_size,
-    #    lattice_size=args.lattice_size,
-    #    p_list=None if args.use_property else [0.5928],
-    #    split=True,
-    #    save_dir=None
-    #)
+    if args.stat_phys_model == "percolation":
 
-    # For Ising
-    with open('./data/ising/L=64/T=2.2257.bin', 'rb') as f:
-       X = np.frombuffer(f.read(), np.int8, offset=0)
-       y = np.full(shape=(X.shape[0], 1), fill_value=2.2257)
+        X_train, y_train, X_test, y_test = generate_percolation_data(
+            dataset_size=args.dataset_size,
+            lattice_size=args.lattice_size,
+            p_list=None if args.use_property else [0.5928],
+            split=True,
+            save_dir=None
+        )
 
-    exit()
+    elif args.stat_phys_model == "ising":
+
+        with open('./data/ising/L={}/T=2.2257.bin'.format(args.lattice_size), 'rb') as f:
+           X = torch.frombuffer(buffer=f.read(), dtype=torch.int8, offset=0).reshape(-1, args.lattice_size, args.lattice_size)[:args.dataset_size]
+           y = torch.full(size=(X.shape[0], 1), fill_value=2.2257)
+        X_train, y_train, X_test, y_test = train_test_split(X, y)
 
     # Instanciating and training the model
     vae = Conv_VAE(
@@ -74,6 +74,7 @@ if __name__ == "__main__":
     
     parser = ArgumentParser()
 
+    parser.add_argument("--stat_phys_model", type=str, default="percolation")
     parser.add_argument("--dataset_size", type=int, default=2048)
     parser.add_argument("--save_dir", type=str, default="./saved_models/conv_vae")
     parser.add_argument("--epochs", type=int, default=32)
