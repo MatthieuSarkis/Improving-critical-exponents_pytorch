@@ -16,14 +16,14 @@ import json
 import os
 import torch
 
-from src.data import generate_data
+from src.data_factory.percolation import generate_percolation_data 
 from src.cnn.cnn import CNN
 
 def main(args):
 
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
 
-    X_train, y_train, X_test, y_test = generate_data(
+    X_train, y_train, X_test, y_test = generate_percolation_data(
         dataset_size=args.dataset_size,
         lattice_size=args.lattice_size,
         p_list=None,
