@@ -17,6 +17,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from src.utils import plot_losses
+
 class ConvCell(nn.Module):
     
     def __init__(
@@ -238,11 +240,16 @@ class CNN(nn.Module):
                     }
                     torch.save(checkpoint_dict, os.path.join(self.save_dir_ckpts, 'ckpt_{}.pt'.format(epoch)))
 
+            with open(os.path.join(self.save_dir, 'loss.json'), 'w') as f:
+                json.dump(self.loss_history, f, indent=4)
+
+            plot_losses(
+                path_to_loss_history=os.path.join(self.save_dir, 'loss.json'),
+                save_directory=os.path.join(self.save_dir, 'losses')
+            )
+
         checkpoint_dict = {
             'constructor_args': self.constructor_args,
             'model_state_dict': self.state_dict(),
         }
         torch.save(checkpoint_dict, os.path.join(self.save_dir_model, 'final_model.pt'))
-
-        with open(os.path.join(self.save_dir, 'loss.json'), 'w') as f:
-            json.dump(self.loss_history, f, indent=4)
