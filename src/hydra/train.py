@@ -18,13 +18,13 @@ import torch
 
 from src.cnn.cnn import CNN
 from src.hydra.hydra import Hydra
-from src.data import generate_data
+from src.data_factory.percolation import generate_percolation_data
 
 def main(args):
     
     save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
 
-    real_images, _ = generate_data(
+    real_images, _ = generate_percolation_data(
         dataset_size=args.dataset_size,
         lattice_size=args.lattice_size,
         p_list=[args.wanted_p],
