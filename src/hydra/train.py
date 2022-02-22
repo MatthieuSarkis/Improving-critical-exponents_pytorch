@@ -34,9 +34,9 @@ def main(args):
 
     cnn_checkpoint = torch.load(args.CNN_model_path, map_location=torch.device(args.device))
     cnn_checkpoint['constructor_args']['device'] = args.device
-    cnn = CNN(**cnn_checkpoint['constructor_args'])   
+    cnn = CNN(**cnn_checkpoint['constructor_args'])
     cnn.load_state_dict(cnn_checkpoint['model_state_dict'])
-    
+
     model = Hydra(
         cnn=cnn,
         lattice_size=args.lattice_size,
@@ -53,7 +53,7 @@ def main(args):
         wanted_p=args.wanted_p,
         save_dir=save_dir
     )
-    
+
     model._train(
         epochs=args.epochs,
         batch_size=args.batch_size,
@@ -64,7 +64,7 @@ def main(args):
 
     with open(os.path.join(save_dir, 'args.json'), 'w') as f:
         json.dump(vars(args), f, indent=4)
-        
+
 if __name__ == "__main__":
 
     parser = ArgumentParser()
@@ -90,6 +90,5 @@ if __name__ == "__main__":
     parser.add_argument('--set_generate_plots', dest='set_generate_plots', action='store_true')
     parser.add_argument('--no-set_generate_plots', dest='set_generate_plots', action='store_false')
     parser.set_defaults(set_generate_plots=False)
-    
     args = parser.parse_args()
     main(args)

@@ -19,7 +19,7 @@ from src.hydra.logger import Logger
 from src.hydra.utils import MSELossRegularized
 
 class Hydra():
-    
+
     def __init__(
         self,
         cnn: nn.Module,
@@ -62,7 +62,7 @@ class Hydra():
         self.discriminator_optimizer = torch.optim.Adam(params=self.discriminator.parameters(), lr=self.discriminator_learning_rate)
         self.cnn_criterion = MSELossRegularized(loss_function=nn.L1Loss(), cnn=self.cnn, l=l1, wanted_output=wanted_p)
         self.bce_criterion = nn.BCELoss()
-        
+        self.patience_discriminator = 4
         self.generator.to(self.device)
         self.discriminator.to(self.device)
         
@@ -73,6 +73,7 @@ class Hydra():
         real_images: torch.tensor,
         set_generate_plots: bool = False,
         bins_number: int = 100,
+        grad_clip: float = 3.0
     ) -> None:
         
         self.logger.initialize()
@@ -91,32 +92,33 @@ class Hydra():
 
                 indices = permutation[i:i+batch_size]
                 number_images = indices.shape[0]
-                 
-                # Training the discriminator
-                self.generator.eval()
-                self.discriminator.train()
-                
-                noise = torch.randn(number_images, self.noise_dim, device=self.device)
-                fake_images_batch = self.generator(noise)
-                real_images_batch = real_images[indices].to(self.device)
-                
-                fake_output = self.discriminator(fake_images_batch).view(-1,)
-                real_output = self.discriminator(real_images_batch).view(-1,)
-                
-                fake_label = torch.full((fake_output.shape[0],), 0.0, dtype=torch.float, device=self.device)
-                real_label = torch.full((real_output.shape[0],), 1.0, dtype=torch.float, device=self.device)
-                
-                self.discriminator_optimizer.zero_grad()
-                
-                fake_gan_loss = self.bce_criterion(fake_output, fake_label)                
-                real_gan_loss = self.bce_criterion(real_output, real_label)
-                disc_loss = 0.5 * (real_gan_loss + fake_gan_loss)
-                
-                disc_loss.backward()
-                self.discriminator_optimizer.step()
-                
-                discriminator_loss += disc_loss.item()
-                
+                for _ in range(self.patience_discriminator):
+                    # Training the discriminator
+                    self.generator.eval()
+                    self.discriminator.train()
+                    self.discriminator_optimizer.zero_grad()
+
+                    noise = torch.randn(number_images, self.noise_dim, device=self.device)
+                    #noise = torch.randn([128, 4, 128, 128])
+                    fake_images_batch = self.generator(noise)
+                    real_images_batch = real_images[indices].to(self.device)
+                    fake_output = self.discriminator(fake_images_batch).view(-1,)
+                    real_output = self.discriminator(real_images_batch).view(-1,)
+                    fake_label = torch.full((fake_output.shape[0],), 0.0, dtype=torch.float, device=self.device)
+                    real_label = torch.full((real_output.shape[0],), 1.0, dtype=torch.float, device=self.device)
+
+                    # loss computation
+                    #fake_gan_loss = self.bce_criterion(fake_output, fake_label)
+                    #real_gan_loss = self.bce_criterion(real_output, real_label)
+                    #disc_loss = 0.5 * (real_gan_loss + fake_gan_loss)
+                    disc_loss = torch.mean(torch.mul(real_output,real_label))
+                    disc_loss += torch.mean(torch.mul(fake_output,fake_label))
+                    disc_loss.backward()
+                    # gradient clipping
+                    torch.nn.utils.clip_grad_norm_(self.discriminator.parameters(),max_norm=grad_clip,norm_type=2)
+                    self.discriminator_optimizer.step()
+                    discriminator_loss += disc_loss.item()
+                discriminator_loss /= self.patience_discriminator
                 # Computing the accuracy of the discriminator
                 fake_output[fake_output<0.5] = 0
                 fake_output[fake_output>=0.5] = 1
@@ -125,36 +127,42 @@ class Hydra():
                 correct_predictions += (fake_output==fake_label).sum().item()
                 correct_predictions += (real_output==real_label).sum().item()
                 total += 2*number_images # set of real images and set of fake images, hence the factor 2
-            
+
                 # Training the generator
                 self.generator.train()
                 self.discriminator.eval()
-                
+
                 for _ in range(self.patience_generator):
-                    
-                    noise = torch.randn(number_images, self.noise_dim, device=self.device)
-                    fake_images_batch = self.generator(noise)
-                    
-                    fake_output = self.discriminator(fake_images_batch).view(-1,)
-                    fake_label = torch.full((number_images,), 1.0, dtype=torch.float, device=self.device)
-                    
                     self.generator_optimizer.zero_grad()
-                    
-                    bce_loss = self.bce_criterion(fake_output, fake_label)
+                    noise = torch.randn(number_images,
+                                        self.noise_dim,
+                                        device=self.device)
+                    fake_images_batch = self.generator(noise)
+
+                    fake_output = self.discriminator(fake_images_batch).view(-1,)
+                    #fake_label = torch.full((number_images,), 1.0, dtype=torch.float, device=self.device)
+                    fake_label = torch.ones(fake_output.shape).to(self.device)
+
+                    # generator losses
+                    #bce_loss = self.bce_criterion(fake_output, fake_label)
                     cnn_loss = self.cnn_criterion(fake_images_batch)
-                    gen_loss = self.l2 * bce_loss + self.l3 * cnn_loss
-                    
+                    #gen_loss = self.l2 * bce_loss + self.l3 * cnn_loss
+                    gen_loss = cnn_loss * self.l3
+                    gen_loss += torch.mean(torch.mul(fake_output,fake_label))
                     gen_loss.backward()
+                    # gradient clipping
+                    torch.nn.utils.clip_grad_norm_(self.generator.parameters(),max_norm=grad_clip,norm_type=2)
+
                     self.generator_optimizer.step()
-                    
+
                     generator_loss += gen_loss.item()
 
                 generator_loss /= self.patience_generator
-                
+
             discriminator_loss /= (real_images.shape[0]/batch_size)
             generator_loss /= (real_images.shape[0]/batch_size)
             discriminator_accuracy = 100 * correct_predictions / total
-            
+
             self.logger.logs['discriminator_loss'].append(discriminator_loss)
             self.logger.logs['generator_loss'].append(generator_loss)
             self.logger.logs['discriminator_accuracy'].append(discriminator_accuracy)
@@ -162,7 +170,7 @@ class Hydra():
             self.logger.save_checkpoint(model=self, epoch=epoch)
             self.logger.set_time_stamp(2)
             self.logger.print_status(epoch=epoch, epochs=epochs)
-            
+
             if set_generate_plots:
                 self.logger.generate_plots(
                     generator=self.generator,
@@ -171,5 +179,4 @@ class Hydra():
                     noise_dim=self.noise_dim,
                     bins_number=bins_number
                 )
-         
         self.logger.save_checkpoint(model=self, is_final_model=True)

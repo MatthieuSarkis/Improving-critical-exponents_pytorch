@@ -47,7 +47,6 @@ class ConvTransposeCell(nn.Module):
     def forward(self,
                 x: torch.tensor,
                 ) -> torch.tensor:
-        
         x = self.convt1(x)
         x = F.leaky_relu_(x)
         x = self.bn1(x)
@@ -55,9 +54,9 @@ class ConvTransposeCell(nn.Module):
         x = F.leaky_relu_(x)
         x = self.bn2(x)
         return x
-          
+
 class Generator(nn.Module):
-    
+
     def __init__(
         self,
         noise_dim: int = 100,
@@ -68,28 +67,25 @@ class Generator(nn.Module):
         self.constructor_args = locals()
         del self.constructor_args['self']
         del self.constructor_args['__class__']
-        
+
         super(Generator, self).__init__()
-            
-        self.device = device  
+        self.device = device
         initial_size = 128 // 2**(n_convt_cells+1)
-        
+
         self.linear = nn.Linear(noise_dim, initial_size * initial_size * 256)
         self.bn = nn.BatchNorm1d(initial_size * initial_size * 256)
-        
+
         convt_block = []
         for i in reversed(range(n_convt_cells-1, 9)):
             convt_block.append(ConvTransposeCell(2**i, 2**(i-1)))
         convt_block.append(nn.ConvTranspose2d(in_channels=256//2**n_convt_cells, out_channels=1, kernel_size=3, stride=2, padding=1, output_padding=1, dilation=1))
         convt_block.append(nn.BatchNorm2d(1))
         self.convt_block = nn.Sequential(*convt_block)
-        
+
         self.to(self.device)
-                 
     def forward(self,
                 x: torch.tensor,
                 ) -> torch.tensor:
-        
         x = x.to(self.device)
         x = self.linear(x)
         x = F.leaky_relu_(x)
