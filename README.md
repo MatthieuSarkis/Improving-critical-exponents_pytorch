@@ -44,13 +44,13 @@ python src/hydra/train.py \
     --dataset_size 256 \
     --batch_size 32 \
     --epochs 10 \
-    --n_conv_cells 2 \
+    --n_conv_cells 5 \
     --n_convt_cells 5 \
-    --generator_learning_rate 1e-3 \
-    --discriminator_learning_rate 1e-3 \
+    --generator_learning_rate 1e-5 \
+    --discriminator_learning_rate 1e-5 \
     --regularization_strength 1.0 \
     --hydra_ratio_bce 1.0 \
-    --hydra_ratio_cnn 1.0 \
+    --hydra_ratio_cnn 0.2 \
     --patience_generator 2 \
     --noise_dim 100 \
     --wanted_p 0.5928 \
