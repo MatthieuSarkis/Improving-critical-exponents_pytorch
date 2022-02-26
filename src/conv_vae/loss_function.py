@@ -40,4 +40,4 @@ class VAE_loss(nn.Module):
         regularization = torch.sum(torch.full_like(reconstructed, 1, dtype=torch.float32) - torch.abs(2 * reconstructed - 1))
         regularization /= torch.numel(reconstructed[0])
 
-        return reconstruction + self.kl_ratio * kld + self.reg_ratio * regularization, reconstruction
+        return reconstruction + self.kl_ratio * kld + self.reg_ratio * regularization, reconstruction, kld

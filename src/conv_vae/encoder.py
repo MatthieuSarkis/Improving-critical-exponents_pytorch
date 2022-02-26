@@ -22,7 +22,8 @@ class Encoder(nn.Module):
         hidden_dim: int,
         latent_dim: int,
         lattice_size: int,
-        properties_dim: int = None, 
+        properties_dim: int = None,
+        embedding_dim_encoder: int = None, 
     ) -> None:
 
         super(Encoder, self).__init__()
@@ -31,7 +32,16 @@ class Encoder(nn.Module):
         self.properties_dim = properties_dim
         self.latent_dim = latent_dim
         self.lattice_size = lattice_size
-        self.input_dim = (1 + properties_dim) if properties_dim is not None else 1
+        self.embedding_dim_encoder = embedding_dim_encoder
+
+        self.input_dim = 1
+
+        if properties_dim is not None:
+            if embedding_dim_encoder is not None:
+                self.embedding = nn.Linear(properties_dim, lattice_size**2 * embedding_dim_encoder)
+                self.input_dim += embedding_dim_encoder
+            else:
+                self.input_dim += properties_dim
 
         self.conv_cell = ConvCell(input_dim=self.input_dim, output_dim=self.hidden_dim)
         self.fc_mu = nn.Linear(self._get_dimension(), latent_dim)
@@ -47,7 +57,11 @@ class Encoder(nn.Module):
     ) -> Tuple[float, float]:
 
         if p is not None:
-            p = p.view(-1, 1, 1, 1).repeat(1, 1, self.lattice_size, self.lattice_size)
+            if self.embedding_dim_encoder is not None:
+                p = nn.Embedding(p)
+                p = p.view(-1, self.embedding_dim_encoder, self.lattice_size, self.lattice_size)
+            else:
+                p = p.view(-1, 1, 1, 1).repeat(1, 1, self.lattice_size, self.lattice_size)
             x = torch.cat([x, p], dim=1) # concatenate along the color channel
             
         h = self.conv_cell(x)
@@ -56,7 +70,7 @@ class Encoder(nn.Module):
         log_var = self.fc_log_var(h)
 
         #log_var = torch.clamp(log_var, min=-10.0, max=50.0) 
-        log_var = (lambda y: torch.tanh(1e-3 * y))(log_var)
+        log_var = (lambda y: torch.tanh(1e-3 * y))(log_var) # to handle the blow up of the variance in a smooth way
 
         return mu, log_var
 
@@ -74,7 +88,11 @@ class ConvCell(nn.Module):
         input_dim: int,
         output_dim: int,
     ) -> None:
-        
+        r"""
+        W_out = W_in // 2
+        H_out = W_in // 2
+        """
+
         super(ConvCell, self).__init__()
         
         self.conv1 = nn.Conv2d(

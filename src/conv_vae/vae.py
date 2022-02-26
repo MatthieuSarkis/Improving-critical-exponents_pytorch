@@ -31,7 +31,9 @@ class Conv_VAE(nn.Module):
         latent_dim: int, 
         network_name: str,
         lattice_size: int,
-        properties_dim: int = None, 
+        properties_dim: int = None,
+        embedding_dim_encoder: int = None,
+        embedding_dim_decoder: int = None, 
         kl_ratio: float = 1.0,
         reg_ratio: float = 1.0,
         learning_rate: float = 1e-3,
@@ -51,6 +53,7 @@ class Conv_VAE(nn.Module):
         self.save_dir_model = os.path.join(self.save_dir, self.network_name+'_model')
         self.save_dir_ckpts = os.path.join(self.save_dir_model, 'ckpts')
         self.save_dir_images = os.path.join(self.save_dir, 'images')
+        self.save_dir_logs = os.path.join(self.save_dir, 'logs')
         os.makedirs(self.save_dir_images, exist_ok=True)
         os.makedirs(self.save_dir_ckpts, exist_ok=True)
 
@@ -58,6 +61,7 @@ class Conv_VAE(nn.Module):
             hidden_dim=hidden_dim, 
             latent_dim=latent_dim, 
             properties_dim=properties_dim, 
+            embedding_dim_encoder=embedding_dim_decoder,
             lattice_size=lattice_size
         )
 
@@ -65,6 +69,7 @@ class Conv_VAE(nn.Module):
             hidden_dim=hidden_dim, 
             latent_dim=latent_dim, 
             properties_dim=properties_dim, 
+            embedding_dim_decoder=embedding_dim_decoder,
             lattice_size=lattice_size, 
             save_dir_images=self.save_dir_images, 
             device=self.device
@@ -186,12 +191,12 @@ class Conv_VAE(nn.Module):
                     }
                     torch.save(checkpoint_dict, os.path.join(self.save_dir_ckpts, 'ckpt_{}.pt'.format(epoch)))
 
-            with open(os.path.join(self.save_dir, 'loss.json'), 'w') as f:
+            with open(os.path.join(self.save_dir_logs, 'loss.json'), 'w') as f:
                 json.dump(self.loss_history, f, indent=4)
 
             plot_losses(
-                path_to_loss_history=os.path.join(self.save_dir, 'loss.json'),
-                save_directory=os.path.join(self.save_dir, 'losses')
+                path_to_loss_history=os.path.join(self.save_dir_logs, 'loss.json'),
+                save_directory=os.path.join(self.save_dir_logs, 'losses')
             )
 
         checkpoint_dict = {
@@ -212,6 +217,7 @@ class Conv_VAE(nn.Module):
         permutation = torch.randperm(X_train.shape[0])
         train_loss = 0.0
         train_reconstruction_loss = 0.0 
+        train_kl_loss = 0.0 
         self.train()
 
         for i in range(0, X_train.shape[0], batch_size):
@@ -223,15 +229,16 @@ class Conv_VAE(nn.Module):
             self.optimizer.zero_grad()
             outputs, mu, log_var = self(inputs, properties)
 
-            total_loss, reconstruction_loss = self.criterion(outputs, inputs, mu, log_var)
+            total_loss, reconstruction_loss, kl_loss = self.criterion(outputs, inputs, mu, log_var)
             total_loss.backward()
             self.optimizer.step()
             train_loss += total_loss.item()
             train_reconstruction_loss += reconstruction_loss.item()
+            train_kl_loss += kl_loss.item()
 
         train_loss /= X_train.shape[0] 
         train_reconstruction_loss /= X_train.shape[0]  
-        train_kl_loss = train_loss - train_reconstruction_loss
+        train_kl_loss /= X_train.shape[0] 
 
         self.loss_history['train'].append(train_loss)
         self.loss_history['train_reconstruction'].append(train_reconstruction_loss)
@@ -247,6 +254,7 @@ class Conv_VAE(nn.Module):
         permutation = torch.randperm(X_test.shape[0])
         test_loss = 0.0
         test_reconstruction_loss = 0.0 
+        test_kl_loss = 0.0 
         self.eval()
 
         for i in range(0, X_test.shape[0], batch_size):
@@ -256,13 +264,14 @@ class Conv_VAE(nn.Module):
             properties = y_test[indices].to(self.device) if y_test is not None else None
 
             outputs, mu, log_var = self(inputs, properties)
-            loss, reconstruction_loss = self.criterion(outputs, inputs, mu, log_var)
+            loss, reconstruction_loss, kl_loss = self.criterion(outputs, inputs, mu, log_var)
             test_loss += loss.item()
             test_reconstruction_loss += reconstruction_loss.item()
+            test_kl_loss += reconstruction_loss.item()
 
         test_loss /= X_test.shape[0]
         test_reconstruction_loss /= X_test.shape[0]
-        test_kl_loss = test_loss - test_reconstruction_loss
+        test_kl_loss /= X_test.shape[0]
 
         self.loss_history['test'].append(test_loss)
         self.loss_history['test_reconstruction'].append(test_reconstruction_loss)

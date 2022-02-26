@@ -24,10 +24,10 @@ def main(args):
 
     # Preparing the directory to save all the logs of the run
     save_dir = os.path.join(args.save_dir, args.stat_phys_model, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
-    os.makedirs(save_dir, exist_ok=True)
+    os.makedirs(os.path.join(save_dir, 'logs'), exist_ok=True)
     
     # Saving the command line arguments of the run for future reference
-    with open(os.path.join(save_dir, 'args.json'), 'w') as f:
+    with open(os.path.join(save_dir, 'logs', 'args.json'), 'w') as f:
         json.dump(vars(args), f, indent=4)
 
     if args.stat_phys_model == "percolation":
@@ -53,6 +53,8 @@ def main(args):
         latent_dim=args.latent_dim, 
         hidden_dim=args.hidden_dim,
         properties_dim=y_train.shape[1] if args.use_property else None,
+        embedding_dim_encoder=args.embedding_dim_encoder,
+        embedding_dim_decoder=args.embedding_dim_decoder,
         kl_ratio=args.kl_ratio,
         reg_ratio=args.reg_ratio,
         network_name='Convolutional_VAE',
@@ -84,6 +86,8 @@ if __name__ == "__main__":
     parser.add_argument("--reg_ratio", type=float, default=1.0)
     parser.add_argument("--lattice_size", type=int, default=128)
     parser.add_argument("--hidden_dim", type=int, default=512)
+    parser.add_argument("--embedding_dim_encoder", type=int)
+    parser.add_argument("--embedding_dim_decoder", type=int)
     parser.add_argument("--latent_dim", type=int, default=32)
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument('--use_property', dest='use_property', action='store_true')

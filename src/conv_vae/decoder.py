@@ -26,6 +26,7 @@ class Decoder(nn.Module):
         lattice_size: int,
         save_dir_images: str,
         properties_dim: int = None,
+        embedding_dim_decoder: int = None,
         device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
     ) -> None:
 
@@ -35,7 +36,16 @@ class Decoder(nn.Module):
         self.hidden_dim = hidden_dim
         self.properties_dim = properties_dim
         self.latent_dim = latent_dim
-        self.input_dim = (latent_dim + properties_dim) if properties_dim is not None else latent_dim 
+        self.embedding_dim_decoder = embedding_dim_decoder
+
+        self.input_dim = latent_dim
+
+        if properties_dim is not None:
+            if embedding_dim_decoder is not None:
+                self.embedding = nn.Linear(properties_dim, embedding_dim_decoder)
+                self.input_dim += embedding_dim_decoder
+            else:
+                self.input_dim += properties_dim
 
         self.fc = nn.Linear(self.input_dim, self.hidden_dim * (self.lattice_size//2) * (self.lattice_size//2))
         self.bn = nn.BatchNorm1d(self.hidden_dim * (self.lattice_size//2) * (self.lattice_size//2))
@@ -51,6 +61,8 @@ class Decoder(nn.Module):
     ) -> torch.tensor:
 
         if p is not None:
+            if self.embedding_dim_decoder is not None:
+                p = self.embedding(p)
             z = torch.cat([z, p], dim=1)
 
         h = self.fc(z)
@@ -94,7 +106,11 @@ class Decoder(nn.Module):
 
             
 class ConvTransposeCell(nn.Module):
-    
+    r"""
+    W_out = 2 * W_in
+    H_out = 2 * W_in
+    """
+
     def __init__(
         self,
         input_dim: int,
