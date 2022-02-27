@@ -55,7 +55,6 @@ def main(args):
         properties_dim=y_train.shape[1] if args.use_property else None,
         embedding_dim_encoder=args.embedding_dim_encoder,
         embedding_dim_decoder=args.embedding_dim_decoder,
-        kl_ratio=args.kl_ratio,
         reg_ratio=args.reg_ratio,
         network_name='Convolutional_VAE',
         learning_rate=args.learning_rate,
@@ -82,7 +81,6 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=32)
     parser.add_argument("--learning_rate", type=float, default=1e-3)
     parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--kl_ratio", type=float, default=0.5)
     parser.add_argument("--reg_ratio", type=float, default=1.0)
     parser.add_argument("--lattice_size", type=int, default=128)
     parser.add_argument("--hidden_dim", type=int, default=512)

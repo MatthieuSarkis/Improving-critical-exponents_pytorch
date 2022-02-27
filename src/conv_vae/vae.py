@@ -21,6 +21,7 @@ from typing import Tuple
 from src.conv_vae.encoder import Encoder
 from src.conv_vae.decoder import Decoder
 from src.conv_vae.loss_function import VAE_loss
+from src.conv_vae.utils import kl_ratio_schedule
 from src.utils import plot_losses
 
 class Conv_VAE(nn.Module):
@@ -34,7 +35,6 @@ class Conv_VAE(nn.Module):
         properties_dim: int = None,
         embedding_dim_encoder: int = None,
         embedding_dim_decoder: int = None, 
-        kl_ratio: float = 1.0,
         reg_ratio: float = 1.0,
         learning_rate: float = 1e-3,
         device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
@@ -61,7 +61,7 @@ class Conv_VAE(nn.Module):
             hidden_dim=hidden_dim, 
             latent_dim=latent_dim, 
             properties_dim=properties_dim, 
-            embedding_dim_encoder=embedding_dim_decoder,
+            embedding_dim_encoder=embedding_dim_encoder,
             lattice_size=lattice_size
         )
 
@@ -75,7 +75,7 @@ class Conv_VAE(nn.Module):
             device=self.device
         )
 
-        self.criterion = VAE_loss(kl_ratio=kl_ratio, reg_ratio=reg_ratio)
+        self.criterion = VAE_loss(reg_ratio=reg_ratio)
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
         self.to(self.device)
     
@@ -161,8 +161,10 @@ class Conv_VAE(nn.Module):
             
             initial_time = time.time()
             
-            self._train_one_epoch(batch_size, X_train, y_train)
-            self._test_one_epoch(batch_size, X_test, y_test)
+            kl_ratio = kl_ratio_schedule(epoch, epochs)
+
+            self._train_one_epoch(batch_size, kl_ratio, X_train, y_train)
+            self._test_one_epoch(batch_size, kl_ratio, X_test, y_test)
 
             self.check_reconstruction(
                 inputs=X_test[:5], 
@@ -210,6 +212,7 @@ class Conv_VAE(nn.Module):
     def _train_one_epoch(
         self,
         batch_size: int,
+        kl_ratio: float,
         X_train: torch.tensor,
         y_train: torch.tensor = None,
     ) -> None:
@@ -229,7 +232,7 @@ class Conv_VAE(nn.Module):
             self.optimizer.zero_grad()
             outputs, mu, log_var = self(inputs, properties)
 
-            total_loss, reconstruction_loss, kl_loss = self.criterion(outputs, inputs, mu, log_var)
+            total_loss, reconstruction_loss, kl_loss = self.criterion(outputs, inputs, mu, log_var, kl_ratio)
             total_loss.backward()
             self.optimizer.step()
             train_loss += total_loss.item()
@@ -247,6 +250,7 @@ class Conv_VAE(nn.Module):
     def _test_one_epoch(
         self,
         batch_size: int,
+        kl_ratio: float,
         X_test: torch.tensor,
         y_test: torch.tensor = None,
     ) -> None:
@@ -264,10 +268,10 @@ class Conv_VAE(nn.Module):
             properties = y_test[indices].to(self.device) if y_test is not None else None
 
             outputs, mu, log_var = self(inputs, properties)
-            loss, reconstruction_loss, kl_loss = self.criterion(outputs, inputs, mu, log_var)
+            loss, reconstruction_loss, kl_loss = self.criterion(outputs, inputs, mu, log_var, kl_ratio)
             test_loss += loss.item()
             test_reconstruction_loss += reconstruction_loss.item()
-            test_kl_loss += reconstruction_loss.item()
+            test_kl_loss += kl_loss.item()
 
         test_loss /= X_test.shape[0]
         test_reconstruction_loss /= X_test.shape[0]

@@ -19,12 +19,10 @@ class VAE_loss(nn.Module):
 
     def __init__(
         self,
-        kl_ratio: float=0.5,
         reg_ratio: float=0.5,
     ) -> None:
 
         super(VAE_loss, self).__init__()
-        self.kl_ratio = kl_ratio
         self.reg_ratio = reg_ratio
 
     def forward(
@@ -33,6 +31,7 @@ class VAE_loss(nn.Module):
         target: torch.tensor, 
         mu: float, 
         log_var: float,
+        kl_ratio: float=0.5,
     ) -> Tuple[torch.tensor, torch.tensor]:
 
         reconstruction = F.binary_cross_entropy(reconstructed, target, reduction='sum')
@@ -40,4 +39,4 @@ class VAE_loss(nn.Module):
         regularization = torch.sum(torch.full_like(reconstructed, 1, dtype=torch.float32) - torch.abs(2 * reconstructed - 1))
         regularization /= torch.numel(reconstructed[0])
 
-        return reconstruction + self.kl_ratio * kld + self.reg_ratio * regularization, reconstruction, kld
+        return reconstruction + kl_ratio * kld + self.reg_ratio * regularization, reconstruction, kld
