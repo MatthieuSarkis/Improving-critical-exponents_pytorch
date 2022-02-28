@@ -16,4 +16,4 @@ def kl_ratio_schedule(
     max: float = 1.0,
 ) -> float:
 
-    return (max * epoch) / (epochs // 10) if epoch <= epochs // 10 else max
+    return (max * epoch) / (epochs / 10) if epoch <= epochs // 10 else max

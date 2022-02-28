@@ -21,10 +21,10 @@ class Decoder(nn.Module):
 
     def __init__(
         self, 
-        hidden_dim: int,
         latent_dim: int,  
         lattice_size: int,
         save_dir_images: str,
+        n_convt_cells: int = 1,
         properties_dim: int = None,
         embedding_dim_decoder: int = None,
         device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
@@ -33,7 +33,6 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
 
         self.lattice_size = lattice_size
-        self.hidden_dim = hidden_dim
         self.properties_dim = properties_dim
         self.latent_dim = latent_dim
         self.embedding_dim_decoder = embedding_dim_decoder
@@ -47,10 +46,17 @@ class Decoder(nn.Module):
             else:
                 self.input_dim += properties_dim
 
-        self.fc = nn.Linear(self.input_dim, self.hidden_dim * (self.lattice_size//2) * (self.lattice_size//2))
-        self.bn = nn.BatchNorm1d(self.hidden_dim * (self.lattice_size//2) * (self.lattice_size//2))
-        self.convt_cell = ConvTransposeCell(input_dim=self.hidden_dim, output_dim=1)
-    
+        self.initial_size = self.lattice_size // 2**n_convt_cells
+        self.fc = nn.Linear(self.input_dim, 256 * self.initial_size * self.initial_size)
+        self.bn = nn.BatchNorm1d(256 * self.initial_size * self.initial_size)
+
+        convt_block = []
+        for i in reversed(range(9 - (n_convt_cells - 1), 9)):
+            convt_block.append(ConvTransposeCell(2**i, 2**(i-1)))
+        convt_block.append(nn.ConvTranspose2d(in_channels=256//2**(n_convt_cells - 1), out_channels=1, kernel_size=3, stride=2, padding=1, output_padding=1, dilation=1))
+        convt_block.append(nn.BatchNorm2d(1))
+        self.convt_block = nn.Sequential(*convt_block)
+
         self.device = device
         self.save_dir_images = save_dir_images
 
@@ -68,8 +74,8 @@ class Decoder(nn.Module):
         h = self.fc(z)
         h = F.leaky_relu_(h)
         h = self.bn(h)
-        h = h.view(-1, self.hidden_dim, self.lattice_size//2, self.lattice_size//2)
-        h = self.convt_cell(h)
+        h = h.view(-1, 256, self.initial_size, self.initial_size)
+        h = self.convt_block(h)
         h = torch.sigmoid_(h)
 
         return h
@@ -129,7 +135,7 @@ class ConvTransposeCell(nn.Module):
             dilation=1
         )
 
-        self.bn = nn.BatchNorm2d(output_dim)
+        self.bn1 = nn.BatchNorm2d(output_dim)
 
         self.convt2 = nn.ConvTranspose2d(
             in_channels=output_dim, 
@@ -141,6 +147,8 @@ class ConvTransposeCell(nn.Module):
             dilation=1
         )
 
+        self.bn2 = nn.BatchNorm2d(output_dim)
+
     def forward(
         self,
         x: torch.tensor,
@@ -148,6 +156,8 @@ class ConvTransposeCell(nn.Module):
         
         x = self.convt1(x)
         x = F.leaky_relu_(x)
-        x = self.bn(x)
+        x = self.bn1(x)
         x = self.convt2(x)
+        x = F.leaky_relu_(x)
+        x = self.bn2(x)
         return x

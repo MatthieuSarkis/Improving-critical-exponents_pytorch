@@ -19,16 +19,15 @@ class Encoder(nn.Module):
 
     def __init__(
         self, 
-        hidden_dim: int,
         latent_dim: int,
         lattice_size: int,
+        n_conv_cells: int = 1,
         properties_dim: int = None,
         embedding_dim_encoder: int = None, 
     ) -> None:
 
         super(Encoder, self).__init__()
 
-        self.hidden_dim = hidden_dim
         self.properties_dim = properties_dim
         self.latent_dim = latent_dim
         self.lattice_size = lattice_size
@@ -42,8 +41,12 @@ class Encoder(nn.Module):
                 self.input_dim += embedding_dim_encoder
             else:
                 self.input_dim += properties_dim
-
-        self.conv_cell = ConvCell(input_dim=self.input_dim, output_dim=self.hidden_dim)
+        
+        conv_block = [ConvCell(input_dim=self.input_dim, output_dim=64)]
+        for i in range(n_conv_cells - 1):
+            conv_block.append(ConvCell(input_dim=64*2**i, output_dim=64*2**(i+1)))
+        self.conv_block = nn.Sequential(*conv_block)
+        
         self.fc_mu = nn.Linear(self._get_dimension(), latent_dim)
         self.fc_log_var = nn.Linear(self._get_dimension(), latent_dim)
 
@@ -64,7 +67,7 @@ class Encoder(nn.Module):
                 p = p.view(-1, 1, 1, 1).repeat(1, 1, self.lattice_size, self.lattice_size)
             x = torch.cat([x, p], dim=1) # concatenate along the color channel
             
-        h = self.conv_cell(x)
+        h = self.conv_block(x)
         h = torch.flatten(h, start_dim=1) # don't flatten along the batch dimension
         mu = self.fc_mu(h)
         log_var = self.fc_log_var(h)
@@ -77,7 +80,7 @@ class Encoder(nn.Module):
     def _get_dimension(self) -> int:
         
         x = torch.zeros((1, self.input_dim, self.lattice_size, self.lattice_size))
-        x = self.conv_cell(x)
+        x = self.conv_block(x)
         return int(torch.numel(x))  
 
 

@@ -47,14 +47,14 @@ def main(args):
            y = torch.full(size=(X.shape[0], 1), fill_value=2.2257)
         X_train, y_train, X_test, y_test = train_test_split(X, y)
 
-    # Instanciating and training the model
     vae = Conv_VAE(
         lattice_size=args.lattice_size,
         latent_dim=args.latent_dim, 
-        hidden_dim=args.hidden_dim,
         properties_dim=y_train.shape[1] if args.use_property else None,
         embedding_dim_encoder=args.embedding_dim_encoder,
         embedding_dim_decoder=args.embedding_dim_decoder,
+        n_conv_cells=args.n_conv_cells,
+        n_convt_cells=args.n_convt_cells,
         reg_ratio=args.reg_ratio,
         network_name='Convolutional_VAE',
         learning_rate=args.learning_rate,
@@ -68,7 +68,8 @@ def main(args):
         X_train=X_train,
         X_test=X_test,
         y_train=y_train if args.use_property else None,
-        y_test=y_test if args.use_property else None
+        y_test=y_test if args.use_property else None,
+        save_checkpoints=args.save_checkpoints
     )
 
 if __name__ == "__main__":
@@ -83,7 +84,8 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--reg_ratio", type=float, default=1.0)
     parser.add_argument("--lattice_size", type=int, default=128)
-    parser.add_argument("--hidden_dim", type=int, default=512)
+    parser.add_argument("--n_conv_cells", type=int, default=1)
+    parser.add_argument("--n_convt_cells", type=int, default=1)
     parser.add_argument("--embedding_dim_encoder", type=int)
     parser.add_argument("--embedding_dim_decoder", type=int)
     parser.add_argument("--latent_dim", type=int, default=32)

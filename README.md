@@ -74,17 +74,19 @@ python src/hydra/generate.py \
 
 ```shell
 python src/conv_vae/train.py \
+    --stat_phys_model percolation \
     --dataset_size 512 \
     --save_dir ./saved_models/conv_vae \
-    --epochs 64 \
+    --epochs 8 \
     --learning_rate 1e-3 \
     --batch_size 16 \
-    --lattice_size 32 \
     --reg_ratio 1.0 \
-    --kl_ratio 1.0 \
-    --hidden_dim 512 \
+    --lattice_size 32 \
+    --n_conv_cells 1 \
+    --n_convt_cells 1 \
     --latent_dim 16 \
-    --device cpu \
+    --embedding_dim_encoder 2 \
+    --embedding_dim_decoder 4 \
     --no-use_property \
     --save_checkpoints
 ``` 

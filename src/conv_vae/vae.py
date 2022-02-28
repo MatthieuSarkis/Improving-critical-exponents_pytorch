@@ -16,6 +16,7 @@ import os
 import torch
 from torch import nn
 from torchvision.utils import save_image
+#from torchvision.transforms import transforms
 from typing import Tuple
 
 from src.conv_vae.encoder import Encoder
@@ -28,13 +29,14 @@ class Conv_VAE(nn.Module):
 
     def __init__(
         self, 
-        hidden_dim: int,
         latent_dim: int, 
         network_name: str,
         lattice_size: int,
         properties_dim: int = None,
         embedding_dim_encoder: int = None,
         embedding_dim_decoder: int = None, 
+        n_conv_cells: int = 1,
+        n_convt_cells: int = 1,
         reg_ratio: float = 1.0,
         learning_rate: float = 1e-3,
         device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
@@ -49,27 +51,22 @@ class Conv_VAE(nn.Module):
 
         self.network_name = network_name
         self.device = device
-        self.save_dir = save_dir
-        self.save_dir_model = os.path.join(self.save_dir, self.network_name+'_model')
-        self.save_dir_ckpts = os.path.join(self.save_dir_model, 'ckpts')
-        self.save_dir_images = os.path.join(self.save_dir, 'images')
-        self.save_dir_logs = os.path.join(self.save_dir, 'logs')
-        os.makedirs(self.save_dir_images, exist_ok=True)
-        os.makedirs(self.save_dir_ckpts, exist_ok=True)
+
+        self._initialize_directories(save_dir)
 
         self.encoder = Encoder(
-            hidden_dim=hidden_dim, 
             latent_dim=latent_dim, 
+            n_conv_cells=n_conv_cells,
             properties_dim=properties_dim, 
             embedding_dim_encoder=embedding_dim_encoder,
             lattice_size=lattice_size
         )
 
-        self.decoder = Decoder(
-            hidden_dim=hidden_dim, 
+        self.decoder = Decoder( 
             latent_dim=latent_dim, 
             properties_dim=properties_dim, 
             embedding_dim_decoder=embedding_dim_decoder,
+            n_convt_cells=n_convt_cells,
             lattice_size=lattice_size, 
             save_dir_images=self.save_dir_images, 
             device=self.device
@@ -78,7 +75,7 @@ class Conv_VAE(nn.Module):
         self.criterion = VAE_loss(reg_ratio=reg_ratio)
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
         self.to(self.device)
-    
+
     def forward(
         self, 
         x: torch.tensor, 
@@ -115,10 +112,17 @@ class Conv_VAE(nn.Module):
 
             comparison = torch.cat([inputs, outputs]).to('cpu')
 
+            #transform = transforms.Compose([
+            #transforms.ToPILImage(),
+            #transforms.Resize(size=48),
+            #transforms.ToTensor()
+            #])
+            #comparison = [transform(x) for x in comparison]
+
             save_image(
                 tensor=comparison, 
                 fp=os.path.join(self.save_dir_images, 'reconstruction_epoch={}.png'.format(epoch)), 
-                nrow=5
+                nrow=5,
             )
 
     @staticmethod
@@ -140,7 +144,7 @@ class Conv_VAE(nn.Module):
         X_test: torch.tensor,
         y_train: torch.tensor = None,
         y_test: torch.tensor = None,
-        save_checkpoints: bool = False,
+        save_checkpoints: bool = True,
     ) -> None:
     
         X_train, X_test = X_train.to(self.device), X_test.to(self.device)
@@ -280,3 +284,17 @@ class Conv_VAE(nn.Module):
         self.loss_history['test'].append(test_loss)
         self.loss_history['test_reconstruction'].append(test_reconstruction_loss)
         self.loss_history['test_kl'].append(test_kl_loss)
+
+    def _initialize_directories(
+        self,
+        save_dir: str,
+    ) -> None:
+
+        self.save_dir = save_dir
+        self.save_dir_model = os.path.join(self.save_dir, self.network_name + '_model')
+        self.save_dir_ckpts = os.path.join(self.save_dir_model, 'ckpts')
+        self.save_dir_images = os.path.join(self.save_dir, 'images')
+        self.save_dir_logs = os.path.join(self.save_dir, 'logs')
+        os.makedirs(self.save_dir_images, exist_ok=True)
+        os.makedirs(self.save_dir_ckpts, exist_ok=True)
+        os.makedirs(self.save_dir_logs, exist_ok=True)
