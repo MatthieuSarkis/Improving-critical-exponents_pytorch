@@ -75,15 +75,15 @@ python src/hydra/generate.py \
 ```shell
 python src/conv_vae/train.py \
     --stat_phys_model percolation \
-    --dataset_size 512 \
+    --dataset_size 2048 \
     --save_dir ./saved_models/conv_vae \
-    --epochs 8 \
+    --epochs 16 \
     --learning_rate 1e-3 \
     --batch_size 16 \
     --reg_ratio 1.0 \
     --lattice_size 32 \
-    --n_conv_cells 1 \
-    --n_convt_cells 1 \
+    --n_conv_cells 2 \
+    --n_convt_cells 2 \
     --latent_dim 16 \
     --embedding_dim_encoder 2 \
     --embedding_dim_decoder 4 \
@@ -102,4 +102,4 @@ python src/conv_vae/generate.py \
 ```
 
 ## License
-[Apache License 2.0](https://github.com/bisonai/mobilenetv3-tensorflow/blob/master/LICENSE)
+[Apache License 2.0](https://github.com/MatthieuSarkis/Improving-critical-exponents_pytorch/blob/master/LICENSE)

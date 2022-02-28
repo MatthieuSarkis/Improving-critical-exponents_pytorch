@@ -50,8 +50,7 @@ class Encoder(nn.Module):
         self.fc_mu = nn.Linear(self._get_dimension(), latent_dim)
         self.fc_log_var = nn.Linear(self._get_dimension(), latent_dim)
 
-        nn.init.constant_(self.fc_log_var.weight.data, 0.0)
-        nn.init.constant_(self.fc_log_var.bias.data, 0.0)
+        self._initialize_weights()
 
     def forward(
         self, 
@@ -73,7 +72,7 @@ class Encoder(nn.Module):
         log_var = self.fc_log_var(h)
 
         #log_var = torch.clamp(log_var, min=-10.0, max=50.0) 
-        log_var = (lambda y: torch.tanh(1e-3 * y))(log_var) # to handle the blow up of the variance in a smooth way
+        #log_var = (lambda y: torch.tanh(1e-3 * y))(log_var) # to handle the blow up of the variance in a smooth way
 
         return mu, log_var
 
@@ -83,6 +82,14 @@ class Encoder(nn.Module):
         x = self.conv_block(x)
         return int(torch.numel(x))  
 
+    def _initialize_weights(
+        self,
+    ) -> None:
+    
+        nn.init.constant_(self.fc_mu.weight.data, 0.0)
+        nn.init.constant_(self.fc_mu.bias.data, 0.0)
+        nn.init.constant_(self.fc_log_var.weight.data, 0.0)
+        nn.init.constant_(self.fc_log_var.bias.data, 0.0)
 
 class ConvCell(nn.Module):
     

@@ -13,6 +13,7 @@
 from argparse import ArgumentParser
 from datetime import datetime
 import json
+import math
 import os
 import torch
 
@@ -42,9 +43,10 @@ def main(args):
 
     elif args.stat_phys_model == "ising":
 
-        with open('./data/ising/L={}/T=2.2257.bin'.format(args.lattice_size), 'rb') as f:
-           X = torch.frombuffer(buffer=f.read(), dtype=torch.int8, offset=0).reshape(-1, args.lattice_size, args.lattice_size)[:args.dataset_size]
-           y = torch.full(size=(X.shape[0], 1), fill_value=2.2257)
+        Tc = (2 / math.log(1 + math.sqrt(2))) / (1 + 5 / (4 * args.lattice_size))
+        with open('./data/ising/L={}/T={:.4f}.bin'.format(args.lattice_size, Tc), 'rb') as f:
+           X = torch.frombuffer(buffer=f.read(), dtype=torch.int8, offset=0).reshape(-1, 1, args.lattice_size, args.lattice_size)[:args.dataset_size].type(torch.float32)
+           y = torch.full(size=(X.shape[0], 1), fill_value=Tc)
         X_train, y_train, X_test, y_test = train_test_split(X, y)
 
     vae = Conv_VAE(

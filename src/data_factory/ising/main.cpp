@@ -44,10 +44,10 @@ int main()
     unsigned seed = static_cast<unsigned int>(chrono::steady_clock::now().time_since_epoch().count());
     
     vector<float> T;
-    for (int i = 0; i <= (int)((T_max - T_min) / dT); i++)
-    {
-        T.push_back(T_min + i * dT);
-    }
+    //for (int i = 0; i <= (int)((T_max - T_min) / dT); i++)
+    //{
+    //    T.push_back(T_min + i * dT);
+    //}
     T.push_back(Tc);
     sort(T.begin(), T.end(), greater<float>());
     

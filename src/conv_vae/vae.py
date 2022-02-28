@@ -22,8 +22,7 @@ from typing import Tuple
 from src.conv_vae.encoder import Encoder
 from src.conv_vae.decoder import Decoder
 from src.conv_vae.loss_function import VAE_loss
-from src.conv_vae.utils import kl_ratio_schedule
-from src.utils import plot_losses
+from src.conv_vae.utils import kl_ratio_schedule, plot_losses
 
 class Conv_VAE(nn.Module):
 
@@ -153,19 +152,22 @@ class Conv_VAE(nn.Module):
         X_train, X_test = (X_train + 1) / 2, (X_test + 1) / 2
 
         self.loss_history = {
-            'train': [], 
-            'test': [], 
+            'train_total': [], 
+            'test_total': [], 
             'train_reconstruction': [], 
             'test_reconstruction': [], 
             'train_kl': [], 
-            'test_kl': []
+            'test_kl': [],
+            'train_regularization': [],
+            'test_regularization': [],
         }
     
         for epoch in range(epochs):
             
             initial_time = time.time()
             
-            kl_ratio = kl_ratio_schedule(epoch, epochs)
+            #kl_ratio = kl_ratio_schedule(epoch, epochs, min=0.01, max=10.0)
+            kl_ratio = 0.5 # Naturally comes from the KL divergence of two gaussians
 
             self._train_one_epoch(batch_size, kl_ratio, X_train, y_train)
             self._test_one_epoch(batch_size, kl_ratio, X_test, y_test)
@@ -183,7 +185,7 @@ class Conv_VAE(nn.Module):
                 epoch=epoch
             )
 
-            print("Epoch: {}/{}, Train Loss: {:.1f}, Test Loss: {:.1f}, Time: {:.2f}s".format(epoch+1, epochs, self.loss_history['train'][-1], self.loss_history['test'][-1], time.time()-initial_time))
+            print("Epoch: {}/{}, Train Loss: {:.4f}, Test Loss: {:.4f}, Time: {:.2f}s".format(epoch+1, epochs, self.loss_history['train_reconstruction'][-1], self.loss_history['test_reconstruction'][-1], time.time()-initial_time))
 
             if save_checkpoints:
                 if ((epoch+1) % 10) == 0:
@@ -192,8 +194,8 @@ class Conv_VAE(nn.Module):
                         'model_state_dict': self.state_dict(),
                         'constructor_args': self.constructor_args,
                         'optimizer_state_dict': self.state_dict(),
-                        'train_loss': self.loss_history['train'][-1],
-                        'test_loss': self.loss_history['test'][-1],
+                        'train_loss': self.loss_history['train_total'][-1],
+                        'test_loss': self.loss_history['test_total'][-1],
                     }
                     torch.save(checkpoint_dict, os.path.join(self.save_dir_ckpts, 'ckpt_{}.pt'.format(epoch)))
 
@@ -224,7 +226,8 @@ class Conv_VAE(nn.Module):
         permutation = torch.randperm(X_train.shape[0])
         train_loss = 0.0
         train_reconstruction_loss = 0.0 
-        train_kl_loss = 0.0 
+        train_kl_loss = 0.0
+        train_regularization_loss = 0.0 
         self.train()
 
         for i in range(0, X_train.shape[0], batch_size):
@@ -236,20 +239,25 @@ class Conv_VAE(nn.Module):
             self.optimizer.zero_grad()
             outputs, mu, log_var = self(inputs, properties)
 
-            total_loss, reconstruction_loss, kl_loss = self.criterion(outputs, inputs, mu, log_var, kl_ratio)
+            total_loss, reconstruction_loss, kl_loss, regularization_loss = self.criterion(outputs, inputs, mu, log_var, kl_ratio)
             total_loss.backward()
             self.optimizer.step()
             train_loss += total_loss.item()
             train_reconstruction_loss += reconstruction_loss.item()
             train_kl_loss += kl_loss.item()
+            train_regularization_loss += regularization_loss.item()
+
+        #print('mu: ', mu.mean(), '\nsigma: ', (log_var.exp()**0.5).mean())
 
         train_loss /= X_train.shape[0] 
         train_reconstruction_loss /= X_train.shape[0]  
-        train_kl_loss /= X_train.shape[0] 
+        train_kl_loss /= X_train.shape[0]
+        train_regularization_loss /= X_train.shape[0] 
 
-        self.loss_history['train'].append(train_loss)
-        self.loss_history['train_reconstruction'].append(train_reconstruction_loss)
+        self.loss_history['train_total'].append(train_loss)
+        self.loss_history['train_reconstruction'].append(train_reconstruction_loss / torch.numel(X_train[0]))
         self.loss_history['train_kl'].append(train_kl_loss)
+        self.loss_history['train_regularization'].append(train_regularization_loss)
 
     def _test_one_epoch(
         self,
@@ -263,6 +271,7 @@ class Conv_VAE(nn.Module):
         test_loss = 0.0
         test_reconstruction_loss = 0.0 
         test_kl_loss = 0.0 
+        test_regularization_loss = 0.0
         self.eval()
 
         for i in range(0, X_test.shape[0], batch_size):
@@ -272,18 +281,21 @@ class Conv_VAE(nn.Module):
             properties = y_test[indices].to(self.device) if y_test is not None else None
 
             outputs, mu, log_var = self(inputs, properties)
-            loss, reconstruction_loss, kl_loss = self.criterion(outputs, inputs, mu, log_var, kl_ratio)
+            loss, reconstruction_loss, kl_loss, regularization_loss = self.criterion(outputs, inputs, mu, log_var, kl_ratio)
             test_loss += loss.item()
             test_reconstruction_loss += reconstruction_loss.item()
             test_kl_loss += kl_loss.item()
+            test_regularization_loss += regularization_loss.item()
 
         test_loss /= X_test.shape[0]
         test_reconstruction_loss /= X_test.shape[0]
         test_kl_loss /= X_test.shape[0]
+        test_regularization_loss /= X_test.shape[0]
 
-        self.loss_history['test'].append(test_loss)
-        self.loss_history['test_reconstruction'].append(test_reconstruction_loss)
+        self.loss_history['test_total'].append(test_loss)
+        self.loss_history['test_reconstruction'].append(test_reconstruction_loss / torch.numel(X_test[0]))
         self.loss_history['test_kl'].append(test_kl_loss)
+        self.loss_history['test_regularization'].append(test_regularization_loss)
 
     def _initialize_directories(
         self,
