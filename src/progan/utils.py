@@ -5,12 +5,55 @@ from math import log2
 
 import src.progan.config as config
 from src.data_factory.percolation import generate_percolation_data
-from src.progan.config import PERCOLATION_CRITICAL_CONTROL_PARAMETER
 
-def get_loader(image_size, dataset_size=5000):
+class CNNLoss(torch.nn.Module):
+    
+    def __init__(
+        self,
+        loss_function: torch.nn.modules.loss._Loss,
+        cnn: torch.nn.Module,
+        wanted_output: float = 0.5928
+    ) -> None:
+        
+        super(CNNLoss, self).__init__()
+        
+        self.wanted_output = wanted_output
+        self.loss_function = loss_function
+        self.cnn = cnn
+        self.cnn.eval()
+
+    def forward(
+        self,
+        generated_images: torch.tensor,
+    ) -> torch.tensor:
+        
+        return self._cnn_loss(generated_images)
+        
+    def _cnn_loss(
+        self, 
+        generated_images: torch.tensor,
+    ) -> torch.tensor:
+    
+        predicted_output = self.cnn(generated_images)
+        wanted_output_ = torch.full_like(predicted_output, self.wanted_output, dtype=torch.float32)
+
+        return self.loss_function(wanted_output_, predicted_output)
+
+
+def get_loader(
+    image_size: int, 
+    dataset_size: int = 5000,
+    statistical_control_parameter: float = 0.5928
+):
     
     batch_size = config.BATCH_SIZES[int(log2(image_size / 4))]
-    dataset, _ = generate_percolation_data(dataset_size=dataset_size, lattice_size=image_size, p_list=[PERCOLATION_CRITICAL_CONTROL_PARAMETER], split=False)
+
+    dataset, _ = generate_percolation_data(
+        dataset_size=dataset_size, 
+        lattice_size=image_size, 
+        p_list=[statistical_control_parameter], 
+        split=False
+    )
     
     loader = DataLoader(
         dataset,
@@ -22,19 +65,19 @@ def get_loader(image_size, dataset_size=5000):
 
     return loader, dataset
 
-# Print losses occasionally and print to tensorboard
 def plot_to_tensorboard(
     writer, 
-    loss_critic,  
+    losses,  
     real, 
     fake, 
     tensorboard_step
 ):
 
-    writer.add_scalar("Loss Critic", loss_critic, global_step=tensorboard_step)
+    for key, value in losses.items():
+        writer.add_scalar(key, value, global_step=tensorboard_step)
 
     with torch.no_grad():
-        # take out (up to) 8 examples to plot
+       
         img_grid_real = torchvision.utils.make_grid(real[:8], normalize=True)
         img_grid_fake = torchvision.utils.make_grid(fake[:8], normalize=True)
         writer.add_image("Real", img_grid_real, global_step=tensorboard_step)

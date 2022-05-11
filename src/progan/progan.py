@@ -5,13 +5,15 @@ import torch
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import save_image
+import torch.nn as nn
 from tqdm import tqdm
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from src.progan.generator import Generator
 from src.progan.discriminator import Discriminator
-from src.progan.utils import gradient_penalty, plot_to_tensorboard, get_loader
+from src.progan.utils import gradient_penalty, plot_to_tensorboard, get_loader, CNNLoss
 import src.progan.config as config
+from src.cnn.cnn import CNN
 
 class ProGan():
 
@@ -24,12 +26,15 @@ class ProGan():
         device: str,
         logs_path: str,
         load_model: bool = False,
+        cnn_path: Optional[str] = None,
+        statistical_control_parameter: float = 0.5928
     ) -> None:
 
         self.learning_rate = learning_rate
         self.device = device
         self.logs_dir_checkpoints, self.logs_dir_images, self.logs_dir_tensorboard = self.build_logs_directories(logs_path=logs_path)
         self.z_dim = z_dim
+        self.statistical_control_parameter = statistical_control_parameter
 
         self.gen = Generator(
             z_dim, 
@@ -60,6 +65,22 @@ class ProGan():
 
         self.writer = SummaryWriter(self.logs_dir_tensorboard)
 
+        if cnn_path is not None:
+
+            cnn_checkpoint = torch.load(config.CNN_MODEL_PATH, map_location=torch.device(config.DEVICE))
+            cnn_checkpoint['constructor_args']['device'] = config.DEVICE
+            self.cnn = CNN(**cnn_checkpoint['constructor_args'])   
+            self.cnn.load_state_dict(cnn_checkpoint['model_state_dict'])
+
+            self.cnn_criterion = CNNLoss(
+                loss_function=nn.L1Loss(), 
+                cnn=self.cnn, 
+                wanted_output=statistical_control_parameter
+            )
+
+        else:
+            self.cnn = None
+
         if load_model:
             self.load_checkpoint(
                 gen_checkpoint_file=config.LOAD_CHECKPOINT_GEN_PATH,
@@ -74,6 +95,7 @@ class ProGan():
         fixed_noise: torch.tensor,
         dataset_size: int,
         save_model: bool = True,
+        cnn_loss_ratio: Optional[float] = None
     ) -> None:
 
         self.gen.train()
@@ -99,7 +121,8 @@ class ProGan():
                     progressive_epochs=progressive_epochs,
                     fixed_noise=fixed_noise,
                     tensorboard_step=tensorboard_step,
-                    alpha=alpha
+                    alpha=alpha, # smooth blending coefficient
+                    cnn_loss_ratio=cnn_loss_ratio
                 )
 
                 if save_model:
@@ -117,9 +140,11 @@ class ProGan():
         fixed_noise: torch.tensor,
         tensorboard_step: int,
         alpha: float,
+        cnn_loss_ratio: Optional[float] = None
     ) -> Tuple[int, float]:
 
         loop = tqdm(loader, leave=True)
+        use_cnn = self.cnn is not None and 4 * 2**step == 128
 
         for batch_idx, real in enumerate(loop):
 
@@ -148,6 +173,10 @@ class ProGan():
                     gen_fake = self.critic(fake, alpha, step)
                     loss_gen = -torch.mean(gen_fake)
 
+                    if use_cnn:
+                        cnn_loss = self.cnn_criterion(fake)
+                        loss_gen += cnn_loss_ratio * cnn_loss
+
                 self.opt_gen.zero_grad()
                 self.scaler_gen.scale(loss_gen).backward()
                 self.scaler_gen.step(self.opt_gen)
@@ -168,6 +197,10 @@ class ProGan():
                 gen_fake = self.critic(fake, alpha, step)
                 loss_gen = -torch.mean(gen_fake)
 
+                if use_cnn:
+                    cnn_loss = self.cnn_criterion(fake)
+                    loss_gen += cnn_loss_ratio * cnn_loss
+
                 self.opt_gen.zero_grad()
                 loss_gen.backward()
                 self.opt_gen.step()
@@ -182,7 +215,7 @@ class ProGan():
 
                 plot_to_tensorboard(
                     self.writer,
-                    loss_critic.item(),
+                    {"Loss Critic": loss_critic.item(), "Loss CNN": cnn_loss.item()} if use_cnn else {"Loss Critic": loss_critic.item()},
                     real.detach(),
                     fixed_fakes.detach(),
                     tensorboard_step,
@@ -192,7 +225,7 @@ class ProGan():
 
             loop.set_postfix(
                 gp=gp.item(),
-                loss_critic=loss_critic.item(),
+                critic_loss=loss_critic.item(),
             )
 
         return tensorboard_step, alpha

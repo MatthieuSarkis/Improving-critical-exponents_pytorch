@@ -15,7 +15,8 @@ def main():
         learning_rate=config.LEARNING_RATE,
         device=config.DEVICE,
         logs_path=config.LOGS_PATH,
-        load_model=config.LOAD_MODEL
+        load_model=config.LOAD_MODEL,
+        cnn_path=config.CNN_MODEL_PATH
     )
 
     progan._train(
@@ -24,7 +25,8 @@ def main():
         lambda_gp=config.LAMBDA_GP,
         fixed_noise=config.FIXED_NOISE,
         dataset_size=config.DATASET_SIZE,
-        save_model=config.SAVE_MODEL
+        save_model=config.SAVE_MODEL,
+        cnn_loss_ratio=config.CNN_LOSS_RATIO if config.CNN_MODEL_PATH is not None else None
     )
 
 if __name__ == "__main__":

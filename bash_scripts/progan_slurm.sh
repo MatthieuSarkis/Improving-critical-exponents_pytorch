@@ -16,6 +16,7 @@ export OMP_NUM_THREADS=1
 module load lang/Python
 . /home/users/msarkis/git_repositories/Improving-critical-exponents_pytorch/.env/bin/activate
 module load toolchain/intel
-python src/main.py
+
+python src/progan/main.py
 
 #python $1

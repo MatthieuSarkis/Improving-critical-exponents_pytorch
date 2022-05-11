@@ -10,8 +10,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+import matplotlib.pyplot as plt
 import torch
-from typing import Tuple
+from typing import Tuple, Dict
+
+def plot_losses(
+    losses_history: Dict,
+    figure_file: str,
+) -> None:
+    
+    fig, ax = plt.subplots(1, 1)
+    fig.set_size_inches(10, 7)
+    ax.plot(losses_history["loss"], label='generator')
+    ax.grid(True)
+    ax.legend()
+    ax.set_title("Generator Loss history")
+    fig.savefig(figure_file)
 
 def train_test_split(
     X: torch.tensor,
