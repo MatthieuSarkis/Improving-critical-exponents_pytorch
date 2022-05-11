@@ -3,7 +3,8 @@ import torch
 import src.progan.config as config
 from src.progan.progan import ProGan
 
-torch.backends.cudnn.benchmarks = True
+if 'cuda' in config.DEVICE:
+    torch.backends.cudnn.benchmarks = True
 
 def main():
     

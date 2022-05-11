@@ -50,7 +50,7 @@ class Discriminator(nn.Module):
     ) -> torch.tensor:
         
         batch_statistics = torch.std(x, dim=0).mean().repeat(x.shape[0], 1, x.shape[2], x.shape[3])
-        return torch.cat([x, batch_statistics], dim=1) # 512 -> 513
+        return torch.cat([x, batch_statistics], dim=1) # to force more creativity (cf. paper)
 
     def forward(
         self,

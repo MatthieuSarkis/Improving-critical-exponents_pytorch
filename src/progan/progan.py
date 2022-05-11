@@ -54,8 +54,9 @@ class ProGan():
             betas=(0.0, 0.99)
         )
 
-        self.scaler_critic = torch.cuda.amp.GradScaler()
-        self.scaler_gen = torch.cuda.amp.GradScaler()
+        if 'cuda' in device:
+            self.scaler_critic = torch.cuda.amp.GradScaler()
+            self.scaler_gen = torch.cuda.amp.GradScaler()
 
         self.writer = SummaryWriter(self.logs_dir_tensorboard)
 
@@ -127,7 +128,32 @@ class ProGan():
 
             noise = torch.randn(cur_batch_size, self.z_dim, 1, 1).to(self.device)
 
-            with torch.cuda.amp.autocast():
+            if 'cuda' in self.device:
+
+                with torch.cuda.amp.autocast():
+
+                    fake = self.gen(noise, alpha, step)
+                    critic_real = self.critic(real, alpha, step)
+                    critic_fake = self.critic(fake.detach(), alpha, step)
+                    gp = gradient_penalty(self.critic, real, fake, alpha, step, device=self.device)
+                    loss_critic = -(torch.mean(critic_real) - torch.mean(critic_fake)) + lambda_gp * gp + (0.001 * torch.mean(critic_real ** 2))
+
+                self.opt_critic.zero_grad()
+                self.scaler_critic.scale(loss_critic).backward()
+                self.scaler_critic.step(self.opt_critic)
+                self.scaler_critic.update()
+
+                with torch.cuda.amp.autocast():
+
+                    gen_fake = self.critic(fake, alpha, step)
+                    loss_gen = -torch.mean(gen_fake)
+
+                self.opt_gen.zero_grad()
+                self.scaler_gen.scale(loss_gen).backward()
+                self.scaler_gen.step(self.opt_gen)
+                self.scaler_gen.update()
+
+            else:
 
                 fake = self.gen(noise, alpha, step)
                 critic_real = self.critic(real, alpha, step)
@@ -135,23 +161,18 @@ class ProGan():
                 gp = gradient_penalty(self.critic, real, fake, alpha, step, device=self.device)
                 loss_critic = -(torch.mean(critic_real) - torch.mean(critic_fake)) + lambda_gp * gp + (0.001 * torch.mean(critic_real ** 2))
 
-            self.opt_critic.zero_grad()
-            self.scaler_critic.scale(loss_critic).backward()
-            self.scaler_critic.step(self.opt_critic)
-            self.scaler_critic.update()
-
-            with torch.cuda.amp.autocast():
+                self.opt_critic.zero_grad()
+                loss_critic.backward()
+                self.opt_critic.step()
 
                 gen_fake = self.critic(fake, alpha, step)
                 loss_gen = -torch.mean(gen_fake)
 
-            self.opt_gen.zero_grad()
-            self.scaler_gen.scale(loss_gen).backward()
-            self.scaler_gen.step(self.opt_gen)
-            self.scaler_gen.update()
+                self.opt_gen.zero_grad()
+                loss_gen.backward()
+                self.opt_gen.step()
 
-            # Update alpha and ensure less than 1
-            alpha += cur_batch_size / ((progressive_epochs[step] * 0.5) * len(dataset))
+            alpha += cur_batch_size / ((progressive_epochs[step] * 0.5) * len(dataset)) # Update alpha and ensure less than 1
             alpha = min(alpha, 1)
 
             if batch_idx % 500 == 0:
@@ -193,7 +214,6 @@ class ProGan():
 
         self.gen.train()
 
-
     def save_checkpoint(self) -> None:
 
         print("=> Saving checkpoint")
@@ -228,8 +248,6 @@ class ProGan():
         self.opt_gen.load_state_dict(gen_checkpoint["optimizer"])
         self.opt_critic.load_state_dict(critic_checkpoint["optimizer"])
 
-        # If we don't do this then it will just have learning rate of old checkpoint
-        # and it will lead to many hours of debugging \:
         for param_group in self.opt_gen.param_groups:
             param_group["lr"] = self.learning_rate
         for param_group in self.opt_critic.param_groups:

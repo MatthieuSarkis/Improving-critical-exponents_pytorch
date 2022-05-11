@@ -2,6 +2,7 @@ import torch
 import torchvision
 from torch.utils.data import DataLoader
 from math import log2
+
 import src.progan.config as config
 from src.data_factory.percolation import generate_percolation_data
 from src.progan.config import PERCOLATION_CRITICAL_CONTROL_PARAMETER
