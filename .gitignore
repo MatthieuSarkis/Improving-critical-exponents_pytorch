@@ -6,7 +6,6 @@ __pycache__
 data/
 saved_models/
 *.gif
-*.sh
 *.egg-info/
 build/
 dist/
