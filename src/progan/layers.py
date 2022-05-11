@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 
-factors = [1, 1, 1, 1, 1/2, 1/4, 1/8, 1/16, 1/32]
-
 class WSConv2d(nn.Module):
 
     def __init__(

@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from layers import *
+from src.progan.config import FACTORS
+from src.progan.layers import *
 
 class Generator(nn.Module):
     
@@ -10,10 +11,11 @@ class Generator(nn.Module):
         self,
         z_dim: int,
         in_channels: int,
-        img_channels: int = 3
+        img_channels: int = 1
     ):
 
         super().__init__()
+
         self.initial = nn.Sequential(
             PixelNorm(),
             nn.ConvTranspose2d(z_dim, in_channels, 4, 1, 0),
@@ -27,13 +29,12 @@ class Generator(nn.Module):
 
         self.prog_blocks, self.rgb_layers = nn.ModuleList(), nn.ModuleList([self.initial_rgb])
 
-        for i in range(len(factors) - 1):
+        for i in range(len(FACTORS) - 1):
             
-            conv_in_c = int(in_channels * factors[i])
-            conv_out_c = int(in_channels * factors[i+1])
+            conv_in_c = int(in_channels * FACTORS[i])
+            conv_out_c = int(in_channels * FACTORS[i+1])
             self.prog_blocks.append(ConvBlock(conv_in_c, conv_out_c))
             self.rgb_layers.append(WSConv2d(conv_out_c, img_channels, kernel_size=1, stride=1, padding=0))
-
 
     def fade_in(
         self,
@@ -62,4 +63,5 @@ class Generator(nn.Module):
 
         final_upscaled = self.rgb_layers[steps - 1](upscaled)
         final_out = self.rgb_layers[steps](out)
+
         return self.fade_in(alpha, final_upscaled, final_out)

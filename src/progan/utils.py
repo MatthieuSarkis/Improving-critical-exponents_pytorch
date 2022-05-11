@@ -1,16 +1,35 @@
 import torch
-import random
-import numpy as np
-import os
 import torchvision
-import config
-from torchvision.utils import save_image
-from scipy.stats import truncnorm
+from torch.utils.data import DataLoader
+from math import log2
+import src.progan.config as config
+from src.data_factory.percolation import generate_percolation_data
+from src.progan.config import PERCOLATION_CRITICAL_CONTROL_PARAMETER
+
+def get_loader(image_size, dataset_size=5000):
+    
+    batch_size = config.BATCH_SIZES[int(log2(image_size / 4))]
+    dataset, _ = generate_percolation_data(dataset_size=dataset_size, lattice_size=image_size, p_list=[PERCOLATION_CRITICAL_CONTROL_PARAMETER], split=False)
+    
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=config.NUM_WORKERS,
+        pin_memory=True,
+    )
+
+    return loader, dataset
 
 # Print losses occasionally and print to tensorboard
 def plot_to_tensorboard(
-    writer, loss_critic, loss_gen, real, fake, tensorboard_step
+    writer, 
+    loss_critic,  
+    real, 
+    fake, 
+    tensorboard_step
 ):
+
     writer.add_scalar("Loss Critic", loss_critic, global_step=tensorboard_step)
 
     with torch.no_grad():
@@ -20,8 +39,15 @@ def plot_to_tensorboard(
         writer.add_image("Real", img_grid_real, global_step=tensorboard_step)
         writer.add_image("Fake", img_grid_fake, global_step=tensorboard_step)
 
+def gradient_penalty(
+    critic, 
+    real, 
+    fake, 
+    alpha, 
+    train_step, 
+    device="cpu"
+):
 
-def gradient_penalty(critic, real, fake, alpha, train_step, device="cpu"):
     BATCH_SIZE, C, H, W = real.shape
     beta = torch.rand((BATCH_SIZE, 1, 1, 1)).repeat(1, C, H, W).to(device)
     interpolated_images = real * beta + fake.detach() * (1 - beta)
@@ -38,52 +64,10 @@ def gradient_penalty(critic, real, fake, alpha, train_step, device="cpu"):
         create_graph=True,
         retain_graph=True,
     )[0]
+
     gradient = gradient.view(gradient.shape[0], -1)
     gradient_norm = gradient.norm(2, dim=1)
     gradient_penalty = torch.mean((gradient_norm - 1) ** 2)
+
     return gradient_penalty
 
-
-def save_checkpoint(model, optimizer, filename="my_checkpoint.pth.tar"):
-    print("=> Saving checkpoint")
-    checkpoint = {
-        "state_dict": model.state_dict(),
-        "optimizer": optimizer.state_dict(),
-    }
-    torch.save(checkpoint, filename)
-
-
-def load_checkpoint(checkpoint_file, model, optimizer, lr):
-    print("=> Loading checkpoint")
-    checkpoint = torch.load(checkpoint_file, map_location="cuda")
-    model.load_state_dict(checkpoint["state_dict"])
-    optimizer.load_state_dict(checkpoint["optimizer"])
-
-    # If we don't do this then it will just have learning rate of old checkpoint
-    # and it will lead to many hours of debugging \:
-    for param_group in optimizer.param_groups:
-        param_group["lr"] = lr
-
-def seed_everything(seed=42):
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
-def generate_examples(gen, steps, truncation=0.7, n=100):
-    """
-    Tried using truncation trick here but not sure it actually helped anything, you can
-    remove it if you like and just sample from torch.randn
-    """
-    gen.eval()
-    alpha = 1.0
-    for i in range(n):
-        with torch.no_grad():
-            noise = torch.tensor(truncnorm.rvs(-truncation, truncation, size=(1, config.Z_DIM, 1, 1)), device=config.DEVICE, dtype=torch.float32)
-            img = gen(noise, alpha, steps)
-            save_image(img*0.5+0.5, f"saved_examples/img_{i}.png")
-    gen.train()

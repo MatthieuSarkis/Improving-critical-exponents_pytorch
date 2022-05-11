@@ -1,15 +1,14 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from layers import *
-
+from src.progan.config import FACTORS
+from src.progan.layers import *
 class Discriminator(nn.Module):
 
     def __init__(
         self,
         in_channels: int,
-        img_channels: int = 3
+        img_channels: int = 1
     ) -> None:
 
         super().__init__()
@@ -17,9 +16,10 @@ class Discriminator(nn.Module):
         self.prog_blocks, self.rgb_layers = nn.ModuleList(), nn.ModuleList()
         self.leaky = nn.LeakyReLU(0.2)
 
-        for i in range(len(factors) - 1, 0, -1):
-            conv_in_c = int(in_channels * factors[i])
-            conv_out_c = int(in_channels * factors[i-1])
+        for i in range(len(FACTORS) - 1, 0, -1):
+
+            conv_in_c = int(in_channels * FACTORS[i])
+            conv_out_c = int(in_channels * FACTORS[i-1])
             self.prog_blocks.append(ConvBlock(conv_in_c, conv_out_c, use_pixelnorm=False))
             self.rgb_layers.append(WSConv2d(img_channels, conv_in_c, kernel_size=1, stride=1, padding=0))
 
