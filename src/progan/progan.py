@@ -1,9 +1,11 @@
-from datetime import datetime
 from math import log2
+import numpy as np
 import os
+import json
 import torch
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
+import torchvision
 from torchvision.utils import save_image
 import torch.nn as nn
 from tqdm import tqdm
@@ -12,14 +14,14 @@ from typing import List, Tuple, Optional
 from src.progan.generator import Generator
 from src.progan.discriminator import Discriminator
 from src.progan.utils import gradient_penalty, plot_to_tensorboard, get_loader, CNNLoss
-import src.progan.config as config
+from src.progan.config import config
 from src.cnn.cnn import CNN
 
 class ProGan():
 
     def __init__(
         self,
-        z_dim: int,
+        noise_dim: int,
         in_channels: int,
         channels_img: int,
         learning_rate: float,
@@ -27,17 +29,19 @@ class ProGan():
         logs_path: str,
         load_model: bool = False,
         cnn_path: Optional[str] = None,
-        statistical_control_parameter: float = 0.5928
+        statistical_control_parameter: float = 0.5928,
+        use_tensorboard: bool = False
     ) -> None:
 
         self.learning_rate = learning_rate
         self.device = device
-        self.logs_dir_checkpoints, self.logs_dir_images, self.logs_dir_tensorboard = self.build_logs_directories(logs_path=logs_path)
-        self.z_dim = z_dim
+        self.logs_dir_checkpoints, self.logs_dir_images, self.save_dir_losses, self.logs_dir_tensorboard = self.build_logs_directories(logs_path=logs_path, use_tensorboard=use_tensorboard)
+        self.noise_dim = noise_dim
         self.statistical_control_parameter = statistical_control_parameter
+        self.use_tensorboard = use_tensorboard
 
-        self.gen = Generator(
-            z_dim, 
+        self.generator = Generator(
+            noise_dim, 
             in_channels, 
             img_channels=channels_img,
         ).to(device)
@@ -47,8 +51,8 @@ class ProGan():
             img_channels=channels_img,
         ).to(device)
 
-        self.opt_gen = optim.Adam(
-            self.gen.parameters(), 
+        self.opt_generator = optim.Adam(
+            self.generator.parameters(), 
             lr=learning_rate, 
             betas=(0.0, 0.99)
         )
@@ -63,17 +67,18 @@ class ProGan():
             self.scaler_critic = torch.cuda.amp.GradScaler()
             self.scaler_gen = torch.cuda.amp.GradScaler()
 
-        self.writer = SummaryWriter(self.logs_dir_tensorboard)
+        if use_tensorboard:
+            self.writer = SummaryWriter(self.logs_dir_tensorboard)
 
         if cnn_path is not None:
 
-            cnn_checkpoint = torch.load(config.CNN_MODEL_PATH, map_location=torch.device(config.DEVICE))
-            cnn_checkpoint['constructor_args']['device'] = config.DEVICE
+            cnn_checkpoint = torch.load(config['CNN_MODEL_PATH'], map_location=torch.device(config['DEVICE']))
+            cnn_checkpoint['constructor_args']['device'] = config['DEVICE']
             self.cnn = CNN(**cnn_checkpoint['constructor_args'])   
             self.cnn.load_state_dict(cnn_checkpoint['model_state_dict'])
 
             self.cnn_criterion = CNNLoss(
-                loss_function=nn.L1Loss(), 
+                loss_function=nn.L1Loss(reduction='sum'), 
                 cnn=self.cnn, 
                 wanted_output=statistical_control_parameter
             )
@@ -83,9 +88,14 @@ class ProGan():
 
         if load_model:
             self.load_checkpoint(
-                gen_checkpoint_file=config.LOAD_CHECKPOINT_GEN_PATH,
-                critic_checkpoint_file=config.LOAD_CHECKPOINT_CRITIC_PATH
+                gen_checkpoint_file=config['LOAD_CHECKPOINT_GEN_PATH'],
+                critic_checkpoint_file=config['LOAD_CHECKPOINT_CRITIC_PATH']
             )
+
+        self.losses = {
+            "Wasserstein Distance": {"Global Step": [], "Loss": []},
+            "CNN Loss": {"Global Step": [], "Loss": []}
+        }
 
     def _train(
         self,
@@ -98,76 +108,104 @@ class ProGan():
         cnn_loss_ratio: Optional[float] = None
     ) -> None:
 
-        self.gen.train()
+        self.losses = {
+            "Wasserstein Distance": {"Global Step": [], "Loss": []},
+            "CNN Loss": {"Global Step": [], "Loss": []}
+        }
+
+        self.generator.train()
         self.critic.train()
 
-        tensorboard_step = 0
+        global_step = 0
         step = int(log2(start_train_at_img_size / 4))
 
         for num_epochs in progressive_epochs[step:]:
 
             alpha = 1e-5
-            loader, dataset = get_loader(image_size=4 * 2**step, dataset_size=dataset_size)  # 4->0, 8->1, 16->2, 32->3, 64->4, 128->5
+            
+            loader = get_loader(
+                image_size=4 * 2**step, 
+                dataset_size=dataset_size, 
+                statistical_control_parameter=self.statistical_control_parameter
+            )
 
             for epoch in range(num_epochs):
 
-                print("(Current image size: {}) Epoch [{}/{}]".format(4 * 2**step, epoch+1, num_epochs))
+                print(
+                    "\n Global Step [{}/{}], Epoch [{}/{}], Current image size: {}, Final image size: 128, percolation parameter: {:.4f}".format(
+                        global_step+1, 
+                        sum(progressive_epochs), 
+                        epoch+1, num_epochs, 
+                        4 * 2**step, 
+                        self.statistical_control_parameter)
+                )
 
-                tensorboard_step, alpha = self._train_one_step(
+                global_step, alpha = self._train_one_step(
                     loader=loader,
-                    dataset=dataset,
+                    dataset_size=dataset_size,
                     step=step,
+                    epoch=epoch,
                     lambda_gp=lambda_gp,
                     progressive_epochs=progressive_epochs,
                     fixed_noise=fixed_noise,
-                    tensorboard_step=tensorboard_step,
-                    alpha=alpha, # smooth blending coefficient
+                    global_step=global_step,
+                    alpha=alpha,
                     cnn_loss_ratio=cnn_loss_ratio
                 )
 
                 if save_model:
                     self.save_checkpoint()
+                    self.dump_losses()
 
             step += 1
 
     def _train_one_step(
         self,
         loader,
-        dataset,
+        dataset_size: int,
         step: int,
+        epoch: int,
         lambda_gp: float,
         progressive_epochs: List[int],
         fixed_noise: torch.tensor,
-        tensorboard_step: int,
+        global_step: int,
         alpha: float,
         cnn_loss_ratio: Optional[float] = None
     ) -> Tuple[int, float]:
 
         loop = tqdm(loader, leave=True)
-        use_cnn = self.cnn is not None and 4 * 2**step == 128
+        image_size = 4 * 2**step
+        use_cnn = self.cnn is not None and image_size == 128
+
+        # for logs
+        cumulative_wasserstein_distance = 0
+        cumulative_cnn_loss = 0
 
         for batch_idx, real in enumerate(loop):
 
             real = real.to(self.device)
             cur_batch_size = real.shape[0]
 
-            noise = torch.randn(cur_batch_size, self.z_dim, 1, 1).to(self.device)
+            noise = torch.randn(cur_batch_size, self.noise_dim, 1, 1).to(self.device)
 
+            # Training on GPU
             if 'cuda' in self.device:
 
+                # Training the critic
                 with torch.cuda.amp.autocast():
 
-                    fake = self.gen(noise, alpha, step)
+                    fake = self.generator(noise, alpha, step)
                     critic_real = self.critic(real, alpha, step)
                     critic_fake = self.critic(fake.detach(), alpha, step)
                     gp = gradient_penalty(self.critic, real, fake, alpha, step, device=self.device)
-                    loss_critic = -(torch.mean(critic_real) - torch.mean(critic_fake)) + lambda_gp * gp + (0.001 * torch.mean(critic_real ** 2))
+                    loss_critic = -(torch.mean(critic_real) - torch.mean(critic_fake)) + lambda_gp * gp + 0.001 * torch.mean(critic_real ** 2)
 
                 self.opt_critic.zero_grad()
                 self.scaler_critic.scale(loss_critic).backward()
                 self.scaler_critic.step(self.opt_critic)
                 self.scaler_critic.update()
 
+                # Training the generator
                 with torch.cuda.amp.autocast():
 
                     gen_fake = self.critic(fake, alpha, step)
@@ -175,88 +213,113 @@ class ProGan():
 
                     if use_cnn:
                         cnn_loss = self.cnn_criterion(fake)
-                        loss_gen += cnn_loss_ratio * cnn_loss
+                        loss_gen += cnn_loss_ratio * cnn_loss / fake.shape[0]   # because we used reduction='sum' 
 
-                self.opt_gen.zero_grad()
+                self.opt_generator.zero_grad()
                 self.scaler_gen.scale(loss_gen).backward()
-                self.scaler_gen.step(self.opt_gen)
+                self.scaler_gen.step(self.opt_generator)
                 self.scaler_gen.update()
 
+            # Training on CPU
             else:
 
-                fake = self.gen(noise, alpha, step)
+                # Training the critic
+                fake = self.generator(noise, alpha, step)
                 critic_real = self.critic(real, alpha, step)
                 critic_fake = self.critic(fake.detach(), alpha, step)
                 gp = gradient_penalty(self.critic, real, fake, alpha, step, device=self.device)
-                loss_critic = -(torch.mean(critic_real) - torch.mean(critic_fake)) + lambda_gp * gp + (0.001 * torch.mean(critic_real ** 2))
+                loss_critic = -(torch.mean(critic_real) - torch.mean(critic_fake)) + lambda_gp * gp + 0.001 * torch.mean(critic_real ** 2)
 
                 self.opt_critic.zero_grad()
                 loss_critic.backward()
                 self.opt_critic.step()
 
+                # Training the generator
                 gen_fake = self.critic(fake, alpha, step)
                 loss_gen = -torch.mean(gen_fake)
 
                 if use_cnn:
                     cnn_loss = self.cnn_criterion(fake)
-                    loss_gen += cnn_loss_ratio * cnn_loss
+                    loss_gen += cnn_loss_ratio * cnn_loss / fake.shape[0]   # because we used reduction='sum' 
 
-                self.opt_gen.zero_grad()
+                self.opt_generator.zero_grad()
                 loss_gen.backward()
-                self.opt_gen.step()
+                self.opt_generator.step()
 
-            alpha += cur_batch_size / ((progressive_epochs[step] * 0.5) * len(dataset)) # Update alpha and ensure less than 1
+            alpha += cur_batch_size / (0.5 * progressive_epochs[step] * dataset_size) # Update alpha and ensure less than 1
             alpha = min(alpha, 1)
 
-            if batch_idx % 500 == 0:
+            # for logs
+            cumulative_wasserstein_distance += (torch.sum(critic_real) - torch.sum(critic_fake)).item()
+            if use_cnn:
+                cumulative_cnn_loss += cnn_loss.item()
+
+            if batch_idx  == len(loop) - 1:
 
                 with torch.no_grad():
-                    fixed_fakes = torch.sign(self.gen(fixed_noise, alpha, step)) # casting the spins to +1 and -1
+                    fixed_fakes = torch.sign(self.generator(fixed_noise, alpha, step)) # casting the spins to +1 and -1
+                    img_grid_real = torchvision.utils.make_grid(real[:8], normalize=True)
+                    img_grid_fake = torchvision.utils.make_grid(fake[:8], normalize=True)
+                    save_image(img_grid_real, os.path.join(self.logs_dir_images, 'size={}_epoch={}_real.png'.format(image_size, epoch)))
+                    save_image(img_grid_fake, os.path.join(self.logs_dir_images, 'size={}_epoch={}_fake.png'.format(image_size, epoch)))
 
-                plot_to_tensorboard(
-                    self.writer,
-                    {"Loss Critic": loss_critic.item(), "Loss CNN": cnn_loss.item()} if use_cnn else {"Loss Critic": loss_critic.item()},
-                    real.detach(),
-                    fixed_fakes.detach(),
-                    tensorboard_step,
-                )
+                if self.use_tensorboard:
 
-                tensorboard_step += 1
+                    plot_to_tensorboard(
+                        writer=self.writer,
+                        losses={"Loss Critic": loss_critic.item(), "Loss CNN": cnn_loss.item()} if use_cnn else {"Loss Critic": loss_critic.item()},
+                        real=real.detach(),
+                        fake=fixed_fakes.detach(),
+                        global_step=global_step,
+                    )
+
+                global_step += 1
 
             loop.set_postfix(
                 gp=gp.item(),
                 critic_loss=loss_critic.item(),
             )
 
-        return tensorboard_step, alpha
+        # for logs
+        cumulative_wasserstein_distance /= dataset_size
+        cumulative_cnn_loss /= dataset_size
+        self.losses['Wasserstein Distance']['Global Step'].append(global_step)
+        self.losses['Wasserstein Distance']['Loss'].append(cumulative_wasserstein_distance)
+        if use_cnn:
+            self.losses['CNN Loss']['Global Step'].append(global_step)
+            self.losses['CNN Loss']['Loss'].append(cumulative_cnn_loss)
+
+        return global_step, alpha
 
     def generate_images(
         self,
-        steps: int, 
-        n_images: int = 100
+        steps: int,
+        n_images: int = 100,
     ) -> None:
 
-        self.gen.eval()
+        self.generator.eval()
+        image_size = 4 * 2**steps
 
         for i in range(n_images):
 
             with torch.no_grad():
-                noise = torch.randn(size=(1, self.z_dim, 1, 1), device=self.device, dtype=torch.float32)
-                img = torch.sign(self.gen(noise, alpha=1.0, steps=steps)) # casting the spins to +1 and -1
-                save_image(img, os.path.join(self.logs_dir_images, 'img_{}.png'.format(i)))
 
-        self.gen.train()
+                noise = torch.randn(size=(1, self.noise_dim, 1, 1), device=self.device, dtype=torch.float32)
+                image = 0.5 * (torch.sign(self.generator(noise, alpha=0.8, steps=steps)) + 1) # casting the spins to +1 and -1 and shifting to 0, 1.
+                save_image(image, os.path.join(self.logs_dir_images, 'size_{}_num_{}.png'.format(image_size, i)))
+                image = image.numpy()
+                np.save(os.path.join(self.logs_dir_images, 'size_{}_num_{}.npy'.format(image_size, i)), image)
+                
+        self.generator.train()
 
     def save_checkpoint(self) -> None:
-
-        print("=> Saving checkpoint")
 
         gen_checkpoint_path = os.path.join(self.logs_dir_checkpoints, 'generator.pt')
         critic_checkpoint_path = os.path.join(self.logs_dir_checkpoints, 'critic.pt')
     
         gen_checkpoint = {
-            "state_dict": self.gen.state_dict(),
-            "optimizer": self.opt_gen.state_dict(),
+            "state_dict": self.generator.state_dict(),
+            "optimizer": self.opt_generator.state_dict(),
         }
 
         critic_checkpoint = {
@@ -273,29 +336,45 @@ class ProGan():
         critic_checkpoint_file: str, 
     ) -> None:
 
-        print("=> Loading checkpoint")
-        gen_checkpoint = torch.load(gen_checkpoint_file, map_location="cuda")
-        critic_checkpoint = torch.load(critic_checkpoint_file, map_location="cuda")
-        self.gen.load_state_dict(gen_checkpoint["state_dict"])
+        print("LOADING CHECKPOINT")
+
+        gen_checkpoint = torch.load(gen_checkpoint_file, map_location=self.device)
+        critic_checkpoint = torch.load(critic_checkpoint_file, map_location=self.device)
+        self.generator.load_state_dict(gen_checkpoint["state_dict"])
         self.critic.load_state_dict(critic_checkpoint["state_dict"])
-        self.opt_gen.load_state_dict(gen_checkpoint["optimizer"])
+        self.opt_generator.load_state_dict(gen_checkpoint["optimizer"])
         self.opt_critic.load_state_dict(critic_checkpoint["optimizer"])
 
-        for param_group in self.opt_gen.param_groups:
+        for param_group in self.opt_generator.param_groups:
             param_group["lr"] = self.learning_rate
         for param_group in self.opt_critic.param_groups:
             param_group["lr"] = self.learning_rate
 
     @staticmethod
-    def build_logs_directories(logs_path: str) -> Tuple[str, str, str]:
-    
-        logs_dir = os.path.join(logs_path, datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
-        logs_dir_checkpoints = os.path.join(logs_dir, 'checkpoints')
-        logs_dir_images = os.path.join(logs_dir, 'images')
-        logs_dir_tensorboard = os.path.join(logs_dir, 'tensorboard')
-        os.makedirs(logs_dir, exist_ok=True)
-        os.makedirs(logs_dir_checkpoints, exist_ok=True)
-        os.makedirs(logs_dir_images, exist_ok=True)
-        os.makedirs(logs_dir_tensorboard, exist_ok=True)
+    def build_logs_directories(
+        logs_path: str,
+        use_tensorboard: bool
+    ) -> Tuple[str, str, str, Optional[str]]:
 
-        return logs_dir_checkpoints, logs_dir_images, logs_dir_tensorboard
+        logs_dir_checkpoints = os.path.join(logs_path, 'checkpoints')
+        os.makedirs(logs_dir_checkpoints, exist_ok=True)
+
+        logs_dir_images = os.path.join(logs_path, 'images')
+        os.makedirs(logs_dir_images, exist_ok=True)
+
+        logs_dir_losses = os.path.join(logs_path, 'losses')
+        os.makedirs(logs_dir_losses, exist_ok=True)
+
+        if use_tensorboard:
+            logs_dir_tensorboard = os.path.join(logs_path, 'tensorboard')
+            os.makedirs(logs_dir_tensorboard, exist_ok=True)
+
+        else: 
+            logs_dir_tensorboard = None
+
+        return logs_dir_checkpoints, logs_dir_images, logs_dir_losses, logs_dir_tensorboard
+
+    def dump_losses(self) -> None:
+
+        with open(os.path.join(self.save_dir_losses, 'losses.json'), 'w') as f:
+            json.dump(self.losses, f,  indent=4, separators=(',', ': '))

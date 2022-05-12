@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 
-from src.progan.config import FACTORS
+from src.progan.config import config
 from src.progan.layers import *
+
 class Discriminator(nn.Module):
 
     def __init__(
@@ -11,15 +12,15 @@ class Discriminator(nn.Module):
         img_channels: int = 1
     ) -> None:
 
-        super().__init__()
+        super(Discriminator, self).__init__()
         
         self.prog_blocks, self.rgb_layers = nn.ModuleList(), nn.ModuleList()
         self.leaky = nn.LeakyReLU(0.2)
 
-        for i in range(len(FACTORS) - 1, 0, -1):
+        for i in range(len(config['FACTORS']) - 1, 0, -1):
 
-            conv_in_c = int(in_channels * FACTORS[i])
-            conv_out_c = int(in_channels * FACTORS[i-1])
+            conv_in_c = int(in_channels * config['FACTORS'][i])
+            conv_out_c = int(in_channels * config['FACTORS'][i-1])
             self.prog_blocks.append(ConvBlock(conv_in_c, conv_out_c, use_pixelnorm=False))
             self.rgb_layers.append(WSConv2d(img_channels, conv_in_c, kernel_size=1, stride=1, padding=0))
 
@@ -50,7 +51,7 @@ class Discriminator(nn.Module):
     ) -> torch.tensor:
         
         batch_statistics = torch.std(x, dim=0).mean().repeat(x.shape[0], 1, x.shape[2], x.shape[3])
-        return torch.cat([x, batch_statistics], dim=1) # to force more creativity (cf. paper)
+        return torch.cat([x, batch_statistics], dim=1) # to force more diversity in the outputs
 
     def forward(
         self,

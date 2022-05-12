@@ -13,7 +13,7 @@ class WSConv2d(nn.Module):
         gain: int = 2
     ) -> None:
 
-        super().__init__()
+        super(WSConv2d, self).__init__()
 
         self.conv = nn.Conv2d(
             in_channels=in_channels,
@@ -40,8 +40,9 @@ class WSConv2d(nn.Module):
 
 class PixelNorm(nn.Module):
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self) -> None:
+
+        super(PixelNorm, self).__init__()
         self.epsilon = 1e-8
 
     def forward(
@@ -59,9 +60,9 @@ class ConvBlock(nn.Module):
         in_channels: int,
         out_channels: int,
         use_pixelnorm: bool=True
-    ):
+    ) -> None:
 
-        super().__init__()
+        super(ConvBlock, self).__init__()
 
         self.use_pixelnorm = use_pixelnorm
 
@@ -79,4 +80,5 @@ class ConvBlock(nn.Module):
         x = self.pn(x) if self.use_pixelnorm else x
         x = self.leaky(self.conv2(x))
         x = self.pn(x) if self.use_pixelnorm else x
+
         return x
