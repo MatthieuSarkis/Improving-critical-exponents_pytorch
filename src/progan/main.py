@@ -29,8 +29,6 @@ def main():
         use_tensorboard=config['USE_TENSORBOARD']
     )
 
-    exit()
-
     progan._train(
         start_train_at_img_size=config['START_TRAIN_AT_IMG_SIZE'],
         progressive_epochs=config['PROGRESSIVE_EPOCHS'],
