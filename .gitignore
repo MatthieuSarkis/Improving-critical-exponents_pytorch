@@ -9,3 +9,4 @@ saved_models/
 *.egg-info/
 build/
 dist/
+generated_data/

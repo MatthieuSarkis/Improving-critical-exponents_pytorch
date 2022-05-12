@@ -1,0 +1,18 @@
+python src/conv_vae/train.py \
+    --stat_phys_model percolation \
+    --dataset_size 512 \
+    --save_dir ./saved_models/conv_vae \
+    --epochs 64 \
+    --learning_rate 1e-3 \
+    --batch_size 16 \
+    --lattice_size 32 \
+    --reg_ratio 1.0 \
+    --hidden_dim 512 \
+    --latent_dim 16 \
+    --embedding_dim_encoder 8 \
+    --embedding_dim_decoder 2 \
+    --device cpu \
+    --no-use_property \
+    --save_checkpoints \
+    --embedding_dim_encoder 2 \
+    --embedding_dim_decoder 2

@@ -27,7 +27,7 @@ class ProGan():
         learning_rate: float,
         device: str,
         logs_path: str,
-        load_model: bool = False,
+        path_to_trained_model: Optional[str] = None,
         cnn_path: Optional[str] = None,
         statistical_control_parameter: float = 0.5928,
         use_tensorboard: bool = False
@@ -35,7 +35,9 @@ class ProGan():
 
         self.learning_rate = learning_rate
         self.device = device
-        self.logs_dir_checkpoints, self.logs_dir_images, self.save_dir_losses, self.logs_dir_tensorboard = self.build_logs_directories(logs_path=logs_path, use_tensorboard=use_tensorboard)
+        self.generated_images_path = logs_path
+        if path_to_trained_model is None:
+            self.logs_dir_checkpoints, self.logs_dir_images, self.save_dir_losses, self.logs_dir_tensorboard = self.build_logs_directories(logs_path=logs_path, use_tensorboard=use_tensorboard)
         self.noise_dim = noise_dim
         self.statistical_control_parameter = statistical_control_parameter
         self.use_tensorboard = use_tensorboard
@@ -86,11 +88,8 @@ class ProGan():
         else:
             self.cnn = None
 
-        if load_model:
-            self.load_checkpoint(
-                gen_checkpoint_file=config['LOAD_CHECKPOINT_GEN_PATH'],
-                critic_checkpoint_file=config['LOAD_CHECKPOINT_CRITIC_PATH']
-            )
+        if path_to_trained_model is not None:
+            self.load_checkpoint(path_to_trained_model=path_to_trained_model)
 
         self.losses = {
             "Wasserstein Distance": {"Global Step": [], "Loss": []},
@@ -298,20 +297,16 @@ class ProGan():
     ) -> None:
 
         self.generator.eval()
-        image_size = 4 * 2**steps
 
         for i in range(n_images):
 
             with torch.no_grad():
 
                 noise = torch.randn(size=(1, self.noise_dim, 1, 1), device=self.device, dtype=torch.float32)
-                image = 0.5 * (torch.sign(self.generator(noise, alpha=0.8, steps=steps)) + 1) # casting the spins to +1 and -1 and shifting to 0, 1.
-                save_image(image, os.path.join(self.logs_dir_images, 'size_{}_num_{}.png'.format(image_size, i)))
+                image = 0.5 * (torch.sign(self.generator(noise, alpha=1.0, steps=steps)) + 1) # casting the spins to +1 and -1 and shifting to 0, 1.
                 image = image.numpy()
-                np.save(os.path.join(self.logs_dir_images, 'size_{}_num_{}.npy'.format(image_size, i)), image)
+                np.save(os.path.join(self.generated_images_path, 'num_{}.npy'.format(i)), image)
                 
-        self.generator.train()
-
     def save_checkpoint(self) -> None:
 
         gen_checkpoint_path = os.path.join(self.logs_dir_checkpoints, 'generator.pt')
@@ -332,11 +327,11 @@ class ProGan():
 
     def load_checkpoint(
         self,
-        gen_checkpoint_file: str,
-        critic_checkpoint_file: str, 
+        path_to_trained_model: str
     ) -> None:
 
-        print("LOADING CHECKPOINT")
+        gen_checkpoint_file = os.path.join(path_to_trained_model, 'checkpoints', 'generator.pt')
+        critic_checkpoint_file = os.path.join(path_to_trained_model, 'checkpoints', 'critic.pt')
 
         gen_checkpoint = torch.load(gen_checkpoint_file, map_location=self.device)
         critic_checkpoint = torch.load(critic_checkpoint_file, map_location=self.device)
