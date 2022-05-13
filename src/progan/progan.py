@@ -1,4 +1,5 @@
 from math import log2
+from pickletools import uint8
 import numpy as np
 import os
 import json
@@ -256,9 +257,9 @@ class ProGan():
             if batch_idx  == len(loop) - 1:
 
                 with torch.no_grad():
-                    fixed_fakes = torch.sign(self.generator(fixed_noise, alpha, step)) # casting the spins to +1 and -1
-                    img_grid_real = torchvision.utils.make_grid(real[:8], normalize=True)
-                    img_grid_fake = torchvision.utils.make_grid(fake[:8], normalize=True)
+                    fixed_fakes = 0.5 * (torch.sign(self.generator(fixed_noise, alpha, step)) + 1) # casting the spins to +1 and -1 and shifting to 0, 1
+                    img_grid_real = torchvision.utils.make_grid(real[:8])
+                    img_grid_fake = torchvision.utils.make_grid(fake[:8])
                     save_image(img_grid_real, os.path.join(self.logs_dir_images, 'size={}_epoch={}_real.png'.format(image_size, epoch)))
                     save_image(img_grid_fake, os.path.join(self.logs_dir_images, 'size={}_epoch={}_fake.png'.format(image_size, epoch)))
 
@@ -304,8 +305,8 @@ class ProGan():
 
                 noise = torch.randn(size=(1, self.noise_dim, 1, 1), device=self.device, dtype=torch.float32)
                 image = 0.5 * (torch.sign(self.generator(noise, alpha=1.0, steps=steps)) + 1) # casting the spins to +1 and -1 and shifting to 0, 1.
-                image = image.numpy()
-                np.save(os.path.join(self.generated_images_path, 'num_{}.npy'.format(i)), image)
+                image = image.cpu().type(torch.int8).view(128, 128).numpy()
+                np.save(os.path.join(self.generated_images_path, 'num_{}.npy'.format(i+1)), image)
                 
     def save_checkpoint(self) -> None:
 
