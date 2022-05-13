@@ -16,7 +16,7 @@ def main(
     if 'cuda' in config['DEVICE']:
         torch.backends.cudnn.benchmarks = True
     
-    save_dir = os.path.join('generated_data', datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
+    save_dir = os.path.join('generated_data', 'model_progan_' + path_to_trained_model.split('/')[-1])
     os.makedirs(save_dir, exist_ok=True)
 
     progan = ProGan(
@@ -24,7 +24,7 @@ def main(
         in_channels=config['IN_CHANNELS'],
         channels_img=config['CHANNELS_IMG'],
         learning_rate=config['LEARNING_RATE'],
-        device=config['DEVICE'],
+        device='cpu',
         logs_path=save_dir,
         path_to_trained_model=path_to_trained_model,
         cnn_path=None,
@@ -40,7 +40,7 @@ def main(
 if __name__ == '__main__':
 
     main(
-        path_to_trained_model='./trained_models_DoNotErase/progan/2022.05.13.10.38.09',
-        n_images=10
+        path_to_trained_model='./trained_models_DoNotErase/progan/2022.05.13.13.43.18',
+        n_images=100000
     )
 

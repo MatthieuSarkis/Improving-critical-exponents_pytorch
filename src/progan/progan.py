@@ -294,19 +294,21 @@ class ProGan():
     def generate_images(
         self,
         steps: int,
-        n_images: int = 100,
+        n_images: int = 100
     ) -> None:
 
         self.generator.eval()
 
-        for i in range(n_images):
+        for i in tqdm(range(n_images)):
 
             with torch.no_grad():
 
                 noise = torch.randn(size=(1, self.noise_dim, 1, 1), device=self.device, dtype=torch.float32)
                 image = 0.5 * (torch.sign(self.generator(noise, alpha=1.0, steps=steps)) + 1) # casting the spins to +1 and -1 and shifting to 0, 1.
                 image = image.cpu().type(torch.int8).view(128, 128).numpy()
-                np.save(os.path.join(self.generated_images_path, 'num_{}.npy'.format(i+1)), image)
+                np.save(os.path.join(self.generated_images_path, 'fake_L=128_p={:.4f}_#{}.npy'.format(self.statistical_control_parameter, i+1)), image)
+
+        print("*** Images Generated ***")
                 
     def save_checkpoint(self) -> None:
 
