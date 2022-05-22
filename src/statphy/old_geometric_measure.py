@@ -15,7 +15,6 @@
 import numpy as np
 from scipy.ndimage import measurements
 import itertools
-import gen_class
 
 def clustering(imgs, 
                target_color = 1, max_num = -1, 
@@ -47,8 +46,7 @@ def clustering(imgs,
     return labels, nums
 
 
-def get_measure(img_gen : gen_class, 
-                img_shape,
+def get_measure(imgs, 
                 target_color = 1,
                 show_progress = True,
                ):
@@ -58,7 +56,7 @@ def get_measure(img_gen : gen_class,
 
     Parameters
     ----------
-    img_gen : generator of images
+    imgs : list of numpy array
         images are with integer values.
     target_color : int, default=1
         the target value to be considered for clustering
@@ -87,7 +85,10 @@ def get_measure(img_gen : gen_class,
             If we dont have an spanning cluster, then M=0
    
     """
-    N = img_gen.len()      # the number of images
+
+    N = len(imgs)      # the number of images
+    img_shape = imgs[0].shape 
+
 
     if show_progress:
         import tqdm
@@ -102,11 +103,9 @@ def get_measure(img_gen : gen_class,
     all_M = np.zeros(N, dtype=int)
     all_xi = np.zeros(N, dtype=float)
     
-    for ii in myrange:
-        img = next(img_gen)
-        print(img)
+    for im in myrange:
         # generate an array of target color
-        site = np.where(img == target_color, 1, 0)
+        site = np.where(imgs[im] == target_color, 1, 0)
 
         # finding the label of each cluster
         label, _ = measurements.label(site)
@@ -117,10 +116,11 @@ def get_measure(img_gen : gen_class,
 
         # mass(size) of each cluster;
         mass = measurements.sum(site, label, index=mlabel_list).astype(int)
+
         all_mass = np.append(all_mass, mass)   
 
         # biggest cluster size
-        all_big[ii] = np.max(mass)
+        all_big[im] = np.max(mass)
     
         # center of mass of each cluster
         cm = measurements.center_of_mass(site, label, index=mlabel_list)
@@ -142,14 +142,14 @@ def get_measure(img_gen : gen_class,
         perc = perc_x[np.where(perc_x >= 0)] 
        
         if len(perc) > 0: 
-            all_M[ii] = mass[perc[0]]
+            all_M[im] = mass[perc[0]]
             mass[perc[0]] = 0 # remove spanning cluster by setting its mass to zero
     
         msum  = np.sum(mass)
         msum2 = np.sum(mass * mass)
         if msum > 0:
-            all_chi[ii] = msum2 / msum                          #  chi = [sum s^2] / [sum s]
-            all_xi[ii] = np.sum(2 * rs2 * mass * mass) / msum2  #  xi = [sum 2*Rs^2 * s^2] / [sum s^2]
+            all_chi[im] = msum2 / msum                          #  chi = [sum s^2] / [sum s]
+            all_xi[im] = np.sum(2 * rs2 * mass * mass) / msum2  #  xi = [sum 2*Rs^2 * s^2] / [sum s^2]
 
     measure = {
         'N' : N,
@@ -254,10 +254,9 @@ if __name__ == '__main__':
                      [1,1,0,0,1,0],
                      [0,1,0,1,0,0]])
 
-    import gen_class
-    img_gen = gen_class.GenUsingList([img1, img2], 2)
+    imgs = [img1, img2]
 
     # get the mesures related to the configurations
-    measure = get_measure(img_gen, img_shape=img1.shape)
+    measure = get_measure(imgs)
     # get the statistics of measures
     stat = measure_statistics(measure)
