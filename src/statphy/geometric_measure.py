@@ -15,7 +15,6 @@
 import numpy as np
 from scipy.ndimage import measurements
 import itertools
-import sys
 
 def clustering(imgs, 
                target_color = 1, max_num = -1, 
