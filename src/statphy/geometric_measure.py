@@ -16,6 +16,8 @@ import numpy as np
 from scipy.ndimage import measurements
 import itertools
 import gen_class
+from numba import jit
+import math
 
 def clustering(imgs, 
                target_color = 1, max_num = -1, 
@@ -240,7 +242,37 @@ def measure_statistics(measure,
     stat['Ps'] = np.average(measure['all_M'] > 0)
 
     return stat
+
+
+def coordinate(i, ly):
+    x = i / ly
+    y = i - x * ly
+    return x, y
+@jit
+def perc_corr_func(label):
+    lx, ly = label.shape
+    n_trails = 100 * lx * ly
+    L = max(lx,ly)
+    r = np.arange(2 * L) # Positions
+    pr = np.zeros(2 * L) # Correlation function
+    npr = np.zeros(2 * L) # Nr of elements
+
+    for k in range(n_trails):
+        i1 = np.random.randint(lx * ly)
+        i2 = np.random.randint(lx * ly)
+        x1, y1 = coordinate(i1, ly)
+        x2, y2 = coordinate(i2, ly)
+        c1, c2 = label[x1, y1], label[x2, y2]
+        if c1 >= 0 and c2 >= 0:
+            dx, dy = x2 - x1, y2 - y1
+            rr = math.hypot(dx, dy)
+            nr = int(math.ceil(rr) + 1) # Corresponding box
+            pr[nr] = pr[nr] + (c1 == c2)
+            npr[nr] = npr[nr] + 1
     
+    pr = pr / npr
+    return r, pr
+
 
 if __name__ == '__main__':
 
