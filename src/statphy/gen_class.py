@@ -1,6 +1,5 @@
 import numpy as np
 
-
 class Gen:
     def __init__(self, n):
         self._n = 0
@@ -55,18 +54,5 @@ if __name__ == '__main__':
         return F
     f = perc_func(L, p)
 
-
-    import glob
-    INPUT_DIR = '../../data/generated_data/model_progan_2022.05.13.13.43.18'
-    p = 0.5928
-    L = 128
-
-    filelist = glob.glob(INPUT_DIR + '/' + f'fake_L={L}_p={p}_*.npy')
-    imgs = [np.load(path) for path in filelist[:2]]
-    img_gen = GenUsingFile(filelist, -1)
-    print(img_gen.len())
-    for img in img_gen:
-        print(img)
-        break
 
 

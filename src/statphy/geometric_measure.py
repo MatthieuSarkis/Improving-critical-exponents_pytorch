@@ -35,14 +35,14 @@ def clustering(imgs,
             np.random.shuffle(index) 
             index = np.insert(index, 0, 0)
             label = index[label]
-            area = measurements.sum(img, label, index=np.arange(label.max() + 1) ).astype(int)
-            label = np.where(area[label] <= lower_size, 0, label)
+            area = measurements.sum(site, label, index=np.arange(label.max() + 1) ).astype(int)
+            label = np.where(area[label] < lower_size, 0, label)
 
         labels.append(label)
         nums.append(numbers)
-        if max_num  == i + 1:
-            break
         i += 1
+        if max_num == i:
+            break
 
     return labels, nums
 
@@ -104,7 +104,6 @@ def get_measure(img_gen : gen_class,
     
     for ii in myrange:
         img = next(img_gen)
-        print(img)
         # generate an array of target color
         site = np.where(img == target_color, 1, 0)
 
