@@ -3,6 +3,7 @@ __pycache__
 .ipynb_checkpoints
 .env/
 .vscode/
+*.code-workspace
 data/
 saved_models/
 *.gif
@@ -10,4 +11,5 @@ saved_models/
 *.out
 build/
 dist/
+
 generated_data/

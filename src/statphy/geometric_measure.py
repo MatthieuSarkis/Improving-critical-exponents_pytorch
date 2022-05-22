@@ -13,9 +13,37 @@
 """ Computing the geometric measures of clusters """
 
 import numpy as np
-from numpy.testing._private.utils import measure
 from scipy.ndimage import measurements
 import itertools
+import sys
+
+def clustering(imgs, 
+               target_color = 1, max_num = -1, 
+               change_type = 'shuffle', 
+               lower_size = -1):
+    """
+    Color the list of images and return a list of colored 2d arrays
+    """
+    labels, nums = [], []
+    for i, img in enumerate(imgs):
+        site = np.where(img == target_color, 1, 0)
+        label, numbers = measurements.label(site)
+
+        if change_type == 'shuffle':
+            index = np.arange(1, label.max() + 1) 
+            np.random.shuffle(index) 
+            index = np.insert(index, 0, 0)
+            label = index[label]
+            area = measurements.sum(img, label, index=np.arange(label.max() + 1) ).astype(int)
+            label = np.where(area[label] <= lower_size, 0, label)
+
+        labels.append(label)
+        nums.append(numbers)
+        if max_num  == i + 1:
+            break
+
+    return labels, nums
+
 
 def get_measure(imgs, 
                 target_color = 1,
@@ -80,13 +108,14 @@ def get_measure(imgs,
 
         # finding the label of each cluster
         label, _ = measurements.label(site)
-        label = label - 1 # I want to start the label(of clusters) from zero
+        label = label - 1 # note that for better calculation, we shift labels' values
 
-        # a range array start from 0 to max(label);
+        # a range array start from 1 to max(label); note that index zero is not our concern
         mlabel_list = np.arange(label.max()+1)
 
         # mass(size) of each cluster;
         mass = measurements.sum(site, label, index=mlabel_list).astype(int)
+
         all_mass = np.append(all_mass, mass)   
 
         # biggest cluster size
@@ -94,7 +123,7 @@ def get_measure(imgs,
     
         # center of mass of each cluster
         cm = measurements.center_of_mass(site, label, index=mlabel_list)
-
+       
         # calculate the gyration radius for each cluster
         rs2 = np.zeros(len(mlabel_list), dtype=float) 
         for i, j in itertools.product(range(img_shape[0]), range(img_shape[1])):
@@ -103,13 +132,14 @@ def get_measure(imgs,
                 dr = np.array([i, j]) - cm[indx]
                 dr2 = np.dot(dr, dr)
                 rs2[indx] = rs2[indx] + dr2
-        rs2 = rs2 / mass
+        rs2 = rs2 / mass 
         all_Rs2 = np.append(all_Rs2, rs2)
 
         # find the spanning cluster along x axis
         # since there is no preference for axes, we just consider x axis
         perc_x = np.intersect1d(label[0,:], label[-1,:])
         perc = perc_x[np.where(perc_x >= 0)] 
+       
         if len(perc) > 0: 
             all_M[im] = mass[perc[0]]
             mass[perc[0]] = 0 # remove spanning cluster by setting its mass to zero
@@ -117,11 +147,8 @@ def get_measure(imgs,
         msum  = np.sum(mass)
         msum2 = np.sum(mass * mass)
         if msum > 0:
-            # calculate chi = [sum s^2] / [sum s]
-            all_chi[im] = msum2 / msum
-
-            # calculate xi = [sum 2*Rs^2 * s^2] / [sum s^2]
-            all_xi[im] = np.sum(2 * rs2 * mass * mass) / msum2
+            all_chi[im] = msum2 / msum                          #  chi = [sum s^2] / [sum s]
+            all_xi[im] = np.sum(2 * rs2 * mass * mass) / msum2  #  xi = [sum 2*Rs^2 * s^2] / [sum s^2]
 
     measure = {
         'N' : N,
@@ -175,10 +202,9 @@ def cluster_number_density(all_mass, img_size, N,
         import histogram
 
         s = np.arange(len(ns))
-        # since s[0]=0, we dont need it
+        # we dont need the ns at index zero
         return histogram.hist(s[1:], ns[1:], nbins=nbins, **kwargs) 
     
-
 
 def measure_statistics(measure,
                        nbins_for_ns = 53):
@@ -216,21 +242,20 @@ def measure_statistics(measure,
     return stat
     
 
-
 if __name__ == '__main__':
 
-    img1 = np.array([[0,0,1,1,0,0],
-                     [0,0,1,1,0,0],
-                     [1,1,0,0,1,0],
-                     [0,0,0,1,0,0]])
+    img1 = np.array([[0,0,1,1,0,1],
+                     [0,0,1,0,1,1],
+                     [1,1,1,0,1,0],
+                     [0,0,1,1,0,1]])
     img2 = np.array([[0,1,1,0,0,0],
                      [0,1,1,1,0,0],
                      [1,1,0,0,1,0],
                      [0,1,0,1,0,0]])
 
     imgs = [img1, img2]
+
     # get the mesures related to the configurations
     measure = get_measure(imgs)
-
     # get the statistics of measures
     stat = measure_statistics(measure)
