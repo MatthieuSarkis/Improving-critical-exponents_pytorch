@@ -16,9 +16,9 @@ INPUT_DIR = '../../generated_data/model_progan_2022.05.13.13.43.18'
 p = 0.5928
 L = 128
 max_n_samples = 1000
-OUPUT_DIR = 'out_stat'
+OUPUT_DIR = 'out_stat3'
 
-clustering_sample_images = True
+clustering_sample_images = False
 calc_stat_of_real_imgs = True
 calc_stat_of_fake_imgs = True
 
@@ -32,7 +32,7 @@ import plots
 import gen_class
 
 # AUXILIARY FUNCTIONS
-def make_perc_arr(L, p):
+def make_perc_func(L, p):
     def F():
         return (np.random.random(size=(L,L)) < p).astype(int)
     return F
@@ -62,7 +62,7 @@ def do_all_statistics_jobs(img_gen, img_shape, suffix='real'):
     plots.logplotXY(plt, x, y, 
                     sim_st=f'$L={L}$', xlabel='$r$', ylabel='$g(r)$',
                     scale_xy_logplot= 1.05,
-                    show_slope=True, xlow=3, xup=20, slope_st='\\eta' ,
+                    show_slope=True, xlow=2, xup=15, slope_st='\\eta' ,
                     marker='.', markersize=None, show_legend=True, 
                     outfilename=f'{OUPUT_DIR}/gr_{suffix}(L={L},N={n_samples}).pdf')
     plt.close()
@@ -70,20 +70,21 @@ def do_all_statistics_jobs(img_gen, img_shape, suffix='real'):
 ## MAIN PART
 if __name__ == '__main__':
 
+    print(40*'-')
     filelist = glob.glob(INPUT_DIR + '/' + f'fake_L={L}_p={p}_*.npy')
     if len(filelist) == 0:
         print('There is no file in dir ', INPUT_DIR)
     os.makedirs(OUPUT_DIR, exist_ok=True)
     print (f'# L={L} p={p} max_n_samples={max_n_samples}')
     print (f'# out_dir={OUPUT_DIR}')
-
+    print(40*'-')
 
     # CLUSTERING THE TEST IMAGES
     if clustering_sample_images:
         print ('Clustering some of real/fake images ...')
         n_samples = 5
         np.random.seed(72)
-        imgs_real = [ (np.random.random(size=(L,L)) < p).astype(int) for i in range(n_samples) ]
+        imgs_real = [ make_perc_func(L, p)() for i in range(n_samples) ]
 
         # now plot some samples
         plt.figure()
@@ -103,7 +104,7 @@ if __name__ == '__main__':
     if calc_stat_of_real_imgs:
         print ('Doing calculations on the real images ...')
         np.random.seed(72)
-        img_gen = gen_class.GenUsingFunc(make_perc_arr(L, p), max_n_samples)
+        img_gen = gen_class.GenUsingFunc(make_perc_func(L, p), max_n_samples)
         do_all_statistics_jobs(img_gen, img_shape=(L,L), suffix='real')
 
     if calc_stat_of_fake_imgs:

@@ -128,7 +128,8 @@ def get_measure(img_gen : gen_class,
         all_mass = np.append(all_mass, mass)   
 
         # biggest cluster size
-        all_big[ii] = np.max(mass)
+        indx_big = np.argmax(mass)
+        all_big[ii] = mass[indx_big]  # np.max(mass)
     
         # center of mass of each cluster
         cm = measurements.center_of_mass(mat, label, index=mlabel_list)
@@ -145,23 +146,30 @@ def get_measure(img_gen : gen_class,
         all_Rs2 = np.append(all_Rs2, rs2)
 
         # find the spanning cluster along x axis
-        # since there is no preference for axes, we just consider x axis
         perc_x = np.intersect1d(label[0,:], label[-1,:])
         perc = perc_x[np.where(perc_x >= 0)] 
+        indx_perc = perc[0] if len(perc) > 0 else -1
+
+        if indx_perc < 0: # if we could not find the spannig cluster along x, we search along y axis
+            perc_y = np.intersect1d(label[:,0], label[:,-1])
+            perc = perc_y[np.where(perc_y >= 0)] 
+            indx_perc = perc[0] if len(perc) > 0 else -1
        
-        if len(perc) > 0: 
-            all_M[ii] = mass[perc[0]]
-            mass[perc[0]] = 0 # remove spanning cluster by setting its mass to zero
+        if indx_perc > 0: 
+            all_M[ii] = mass[indx_perc]
+            mass[indx_perc] = 0 # remove spanning cluster by setting its mass to zero
     
         msum  = np.sum(mass)
         msum2 = np.sum(mass * mass)
         if msum > 0:
             all_chi[ii] = msum2 / msum                          #  chi = [sum s^2] / [sum s]
             all_xi[ii] = np.sum(2 * rs2 * mass * mass) / msum2  #  xi = [sum 2*Rs^2 * s^2] / [sum s^2]
-
         
         # part caluclate gr and r
-        gr = perc_corr.corr_func(label, max_r=max_r, n_trials=200*L**2)
+        if indx_perc < 0:
+            gr = perc_corr.corr_func(label, max_r=max_r, n_trials=100*L**2)
+        else:
+            gr = perc_corr.corr_func_ignore_a_clus(label, max_r=max_r, n_trials=400*L**2, indx_skip=indx_perc)
         gr_accum = gr_accum + gr
 
         count_samples += 1
@@ -270,14 +278,14 @@ def measure_statistics(measure,
 
 if __name__ == '__main__':
 
-    img1 = np.array([[0,0,1,1,0,1],
+    img1 = np.array([[1,0,1,1,0,1],
                      [0,0,1,0,1,1],
                      [1,1,1,0,1,0],
                      [0,0,1,1,0,1]])
-    img2 = np.array([[0,1,1,0,0,0],
-                     [0,1,1,1,0,0],
-                     [1,1,0,0,1,0],
-                     [0,1,0,1,0,0]])
+    img2 = np.array([[1,0,0,0,0,1],
+                     [0,1,1,1,1,0],
+                     [1,1,0,0,1,1],
+                     [0,0,0,1,0,0]])
 
     import gen_class
     img_gen = gen_class.GenUsingList([img1, img2], 2)
