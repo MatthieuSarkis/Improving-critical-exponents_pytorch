@@ -11,5 +11,6 @@ saved_models/
 *.out
 build/
 dist/
+trained_models_*/
 
 generated_data/
