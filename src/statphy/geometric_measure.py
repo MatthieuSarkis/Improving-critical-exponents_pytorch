@@ -16,8 +16,8 @@ import numpy as np
 from scipy.ndimage import measurements
 import itertools
 import gen_class
+import perc_corr
 from numba import jit
-import math
 
 def clustering(imgs, 
                target_color = 1, max_num = -1, 
@@ -29,15 +29,15 @@ def clustering(imgs,
     labels, nums = [], []
     i = 0
     for img in imgs:
-        site = np.where(img == target_color, 1, 0)
-        label, numbers = measurements.label(site)
+        mat = np.where(img == target_color, 1, 0)
+        label, numbers = measurements.label(mat)
 
         if change_type == 'shuffle':
             index = np.arange(1, label.max() + 1) 
             np.random.shuffle(index) 
             index = np.insert(index, 0, 0)
             label = index[label]
-            area = measurements.sum(site, label, index=np.arange(label.max() + 1) ).astype(int)
+            area = measurements.sum(mat, label, index=np.arange(label.max() + 1) ).astype(int)
             label = np.where(area[label] < lower_size, 0, label)
 
         labels.append(label)
@@ -103,28 +103,35 @@ def get_measure(img_gen : gen_class,
     all_big = np.zeros(N, dtype=int)
     all_M = np.zeros(N, dtype=int)
     all_xi = np.zeros(N, dtype=float)
+
+    # varibale for gr, the correlation function
     
+    L = max(img_shape)
+    max_r = 2 * L
+    gr_accum = np.zeros(max_r, float)
+    
+    count_samples = 0
     for ii in myrange:
         img = next(img_gen)
         # generate an array of target color
-        site = np.where(img == target_color, 1, 0)
+        mat = np.where(img == target_color, 1, 0)
 
         # finding the label of each cluster
-        label, _ = measurements.label(site)
+        label, _ = measurements.label(mat)
         label = label - 1 # note that for better calculation, we shift labels' values
 
         # a range array start from 1 to max(label); note that index zero is not our concern
         mlabel_list = np.arange(label.max()+1)
 
         # mass(size) of each cluster;
-        mass = measurements.sum(site, label, index=mlabel_list).astype(int)
+        mass = measurements.sum(mat, label, index=mlabel_list).astype(int)
         all_mass = np.append(all_mass, mass)   
 
         # biggest cluster size
         all_big[ii] = np.max(mass)
     
         # center of mass of each cluster
-        cm = measurements.center_of_mass(site, label, index=mlabel_list)
+        cm = measurements.center_of_mass(mat, label, index=mlabel_list)
        
         # calculate the gyration radius for each cluster
         rs2 = np.zeros(len(mlabel_list), dtype=float) 
@@ -152,8 +159,19 @@ def get_measure(img_gen : gen_class,
             all_chi[ii] = msum2 / msum                          #  chi = [sum s^2] / [sum s]
             all_xi[ii] = np.sum(2 * rs2 * mass * mass) / msum2  #  xi = [sum 2*Rs^2 * s^2] / [sum s^2]
 
+        
+        # part caluclate gr and r
+        gr = perc_corr.corr_func(label, max_r=max_r, n_trials=200*L**2)
+        gr_accum = gr_accum + gr
+
+        count_samples += 1
+    
+    # end for loop
+    
+    # finalize the gr arrays
+
     measure = {
-        'N' : N,
+        'N' : count_samples,
         'shape' : img_shape,
         'all_mass' : all_mass,
         'all_Rs2' : all_Rs2,
@@ -161,6 +179,7 @@ def get_measure(img_gen : gen_class,
         'all_xi' : all_xi, 
         'all_big' : all_big, 
         'all_M' : all_M,
+        'row_gr' : gr_accum / count_samples,
         }
 
     return measure
@@ -241,37 +260,12 @@ def measure_statistics(measure,
     stat['M'] = np.average(measure['all_M'])
     stat['Ps'] = np.average(measure['all_M'] > 0)
 
+    gr = measure['row_gr']
+    r = np.arange(gr.size, dtype=int)
+    indx = np.nonzero(gr)
+    stat['gr'] = (r[indx], gr[indx])
     return stat
 
-
-def coordinate(i, ly):
-    x = i / ly
-    y = i - x * ly
-    return x, y
-@jit
-def perc_corr_func(label):
-    lx, ly = label.shape
-    n_trails = 100 * lx * ly
-    L = max(lx,ly)
-    r = np.arange(2 * L) # Positions
-    pr = np.zeros(2 * L) # Correlation function
-    npr = np.zeros(2 * L) # Nr of elements
-
-    for k in range(n_trails):
-        i1 = np.random.randint(lx * ly)
-        i2 = np.random.randint(lx * ly)
-        x1, y1 = coordinate(i1, ly)
-        x2, y2 = coordinate(i2, ly)
-        c1, c2 = label[x1, y1], label[x2, y2]
-        if c1 >= 0 and c2 >= 0:
-            dx, dy = x2 - x1, y2 - y1
-            rr = math.hypot(dx, dy)
-            nr = int(math.ceil(rr) + 1) # Corresponding box
-            pr[nr] = pr[nr] + (c1 == c2)
-            npr[nr] = npr[nr] + 1
-    
-    pr = pr / npr
-    return r, pr
 
 
 if __name__ == '__main__':
@@ -292,3 +286,5 @@ if __name__ == '__main__':
     measure = get_measure(img_gen, img_shape=img1.shape)
     # get the statistics of measures
     stat = measure_statistics(measure)
+
+    print(stat['gr'])
