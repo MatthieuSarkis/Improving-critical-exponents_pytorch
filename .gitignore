@@ -10,3 +10,4 @@ saved_models/
 build/
 dist/
 generated_data/
+trained_models_DoNotErase/
