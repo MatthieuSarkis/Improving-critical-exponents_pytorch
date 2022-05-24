@@ -1,6 +1,6 @@
 import numpy as np
-import fit
 import math
+from modules import fit
 
 
 def logspace_indxs(x, scale):

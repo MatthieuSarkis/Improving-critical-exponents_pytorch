@@ -97,11 +97,12 @@ def corr_func_exact_method(label : np.ndarray, max_r : int):
 
 if __name__ == '__main__':
     import sys
-    import plots
+    import plot_func
+    import tqdm
 
     # Calculate correlation function
-    n_samples = 100 # number of samples
-    L = 1024 
+    n_samples = 10 # number of samples
+    L = 2048 
     p_arr = [0.55, 0.59, 0.65] # p-value 0.52,0.54,0.55,0.56
     len_p_arr = len(p_arr)
     max_r = 2 * L
@@ -109,10 +110,10 @@ if __name__ == '__main__':
     r = np.arange(max_r, dtype=int)
     np.random.seed(72)
 
-    for i in range(n_samples):
-        if (i + 1) % 10 == 0:
-            print(f"sample {i+1}/{n_samples} ", flush=True)
+    print(f"# L={L}, n_samples={n_samples} " )
 
+    myrange = tqdm.trange(n_samples)
+    for i in myrange:            
         for ip in range(len_p_arr):
             p = p_arr[ip]
             mat = (np.random.random(size=(L,L)) < p).astype(int)
@@ -131,7 +132,7 @@ if __name__ == '__main__':
             if indx_perc < 0:
                 gr = corr_func(labeled, max_r=max_r, n_trials=100*L**2)
             else:
-                gr = corr_func_ignore_a_clus(labeled, max_r=max_r, n_trials=400*L**2, indx_skip=indx_perc)
+                gr = corr_func_ignore_a_clus(labeled, max_r=max_r, n_trials=200*L**2, indx_skip=indx_perc)
 
             gr_accum[:,ip] = gr_accum[:,ip] + gr
 
@@ -143,7 +144,7 @@ if __name__ == '__main__':
         indx = np.nonzero(y)
         x, y = x[indx], y[indx]
 
-        plots.logplotXY(plt, x, y, sim_st=f"$p={p_arr[ip]}$", 
+        plot_func.logplotXY(plt, x, y, sim_st=f"$p={p_arr[ip]}$", 
                         scale_xy_logplot= 1.05,
                         show_slope=True, xlow=2, xup=9, slope_st='\\eta' ,
                         marker='.', markersize=None)

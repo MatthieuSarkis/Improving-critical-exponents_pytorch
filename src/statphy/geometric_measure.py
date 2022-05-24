@@ -15,9 +15,11 @@
 import numpy as np
 from scipy.ndimage import measurements
 import itertools
-import gen_class
-import perc_corr
 from numba import jit
+
+from modules import gen_class
+from modules import histogram
+import perc_corr
 
 def clustering(imgs, 
                target_color = 1, max_num = -1, 
@@ -127,7 +129,7 @@ def get_measure(img_gen : gen_class,
         mass = measurements.sum(mat, label, index=mlabel_list).astype(int)
         all_mass = np.append(all_mass, mass)   
 
-        # biggest cluster size
+        # biggest cluster
         indx_big = np.argmax(mass)
         all_big[ii] = mass[indx_big]  # np.max(mass)
     
@@ -169,7 +171,7 @@ def get_measure(img_gen : gen_class,
         if indx_perc < 0:
             gr = perc_corr.corr_func(label, max_r=max_r, n_trials=100*L**2)
         else:
-            gr = perc_corr.corr_func_ignore_a_clus(label, max_r=max_r, n_trials=400*L**2, indx_skip=indx_perc)
+            gr = perc_corr.corr_func_ignore_a_clus(label, max_r=max_r, n_trials=200*L**2, indx_skip=indx_perc)
         gr_accum = gr_accum + gr
 
         count_samples += 1
@@ -228,8 +230,6 @@ def cluster_number_density(all_mass, img_size, N,
     if nbins is None:
         return ns
     else:
-        import histogram
-
         s = np.arange(len(ns))
         # we dont need the ns at index zero
         return histogram.hist(s[1:], ns[1:], nbins=nbins, **kwargs) 
