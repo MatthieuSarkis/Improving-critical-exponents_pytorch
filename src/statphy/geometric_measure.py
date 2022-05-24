@@ -287,7 +287,7 @@ if __name__ == '__main__':
                      [1,1,0,0,1,1],
                      [0,0,0,1,0,0]])
 
-    import gen_class
+    from modules import gen_class
     img_gen = gen_class.GenUsingList([img1, img2], 2)
 
     # get the mesures related to the configurations
