@@ -11,5 +11,5 @@ saved_models/
 *.out
 build/
 dist/
-
+trained_models_DoNotErase/
 generated_data/
