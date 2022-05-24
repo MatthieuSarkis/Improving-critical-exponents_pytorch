@@ -3,6 +3,7 @@ __pycache__
 .ipynb_checkpoints
 .env/
 .vscode/
+*.code-workspace
 data/
 saved_models/
 *.gif
