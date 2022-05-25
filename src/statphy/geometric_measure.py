@@ -171,7 +171,8 @@ def get_measure(img_gen : gen_class,
         if indx_perc < 0:
             gr = perc_corr.corr_func(label, max_r=max_r, n_trials=100*L**2)
         else:
-            gr = perc_corr.corr_func_ignore_a_clus(label, max_r=max_r, n_trials=200*L**2, indx_skip=indx_perc)
+            gr = perc_corr.corr_func(label, max_r=max_r, n_trials=100*L**2)
+            #gr = perc_corr.corr_func_ignore_a_clus(label, max_r=max_r, n_trials=200*L**2, indx_skip=indx_perc)
         gr_accum = gr_accum + gr
 
         count_samples += 1

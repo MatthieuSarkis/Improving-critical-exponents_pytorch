@@ -16,8 +16,8 @@ INPUT_DIR = '../../generated_data/model_progan_2022.05.13.13.43.18'
 p = 0.5928
 L = 1500
 max_n_samples = 100
-OUPUT_DIR_figs = 'output_files/fig'
-OUPUT_DIR_data = 'output_files/txt'
+OUPUT_DIR_figs = 'output_files--calc-gr-all-clusters/fig'
+OUPUT_DIR_data = 'output_files--calc-gr-all-clusters/txt'
 
 clustering_sample_images = False
 calc_stat_of_real_imgs = True
