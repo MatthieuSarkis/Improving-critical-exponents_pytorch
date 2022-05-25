@@ -38,6 +38,7 @@ def logplotXY(plt, x, y, xlabel=None, ylabel=None, title=None, outfilename=None,
               slope_st = '\\tau',
               marker = 'o' ,
               markersize=5,
+              precision = 2
             ):
 
     if scale_xy_logplot <= 1:
@@ -57,7 +58,7 @@ def logplotXY(plt, x, y, xlabel=None, ylabel=None, title=None, outfilename=None,
         yn = c * xn ** expo
         expo_usign = expo if expo > 0 else -expo
         plt.loglog(xn, yn, color=pl[0].get_color(),
-                label = fr'${slope_st}={expo_usign:.2f} \pm {expo_err:.2f}$'  )
+                label = fr'${slope_st}={expo_usign:.{precision}f} \pm {expo_err:.{precision}f}$'  )
     
     if show_legend:
         plt.legend(frameon=False)

@@ -3,11 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plot_func
 #================================
-basename = 'ns'
+basename = 'gr'
 p = 0.5928
-L_arr = [128, 256, 512, 1024, 2048]
-INPUT_DIR = 'output_files/data'
-OUPUT_DIR = 'output_files/figs_distributions'
+L_arr = [128, 256, 512, 800, 1024, 2048]
+INPUT_DIR = 'output_files/txt'
+OUPUT_DIR = 'output_files/fig_distributions'
 #================================
 dic_xlabel = {'gr': '$r$', 'ns': '$s$'}
 dic_ylabel = {'gr': '$g(r)$', 'ns': '$n(s)$'}
@@ -36,7 +36,8 @@ if __name__ == '__main__':
                                     sim_st=fr'$L={L} \quad {suffix}$',
                                     scale_xy_logplot= 1.01,
                                     show_slope=True, xlow=2, xup=15, slope_st='\\eta' ,
-                                    marker='.', markersize=None, )
+                                    marker='.', markersize=None,
+                                    precision=3 )
             elif basename == 'ns':
                 plot_func.logplotXY(plt, x, y,
                                     sim_st=fr'$L={L} \quad {suffix}$',

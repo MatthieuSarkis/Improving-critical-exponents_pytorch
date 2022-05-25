@@ -14,8 +14,8 @@
 ## INITIAL PARAMETERS
 INPUT_DIR = '../../generated_data/model_progan_2022.05.13.13.43.18'
 p = 0.5928
-L = 800
-max_n_samples = 1000
+L = 1500
+max_n_samples = 100
 OUPUT_DIR_figs = 'output_files/fig'
 OUPUT_DIR_data = 'output_files/txt'
 

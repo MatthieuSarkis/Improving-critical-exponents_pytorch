@@ -167,7 +167,7 @@ def get_measure(img_gen : gen_class,
             all_chi[ii] = msum2 / msum                          #  chi = [sum s^2] / [sum s]
             all_xi[ii] = np.sum(2 * rs2 * mass * mass) / msum2  #  xi = [sum 2*Rs^2 * s^2] / [sum s^2]
         
-        # part caluclate gr and r
+        # calcualte gr
         if indx_perc < 0:
             gr = perc_corr.corr_func(label, max_r=max_r, n_trials=100*L**2)
         else:
