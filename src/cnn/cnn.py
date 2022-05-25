@@ -243,10 +243,10 @@ class CNN(nn.Module):
             with open(os.path.join(self.save_dir, 'loss.json'), 'w') as f:
                 json.dump(self.loss_history, f, indent=4)
 
-            plot_losses(
-                path_to_loss_history=os.path.join(self.save_dir, 'loss.json'),
-                save_directory=os.path.join(self.save_dir, 'losses')
-            )
+            #plot_losses(
+            #    path_to_loss_history=os.path.join(self.save_dir, 'loss.json'),
+            #    save_directory=os.path.join(self.save_dir, 'losses')
+            #)
 
         checkpoint_dict = {
             'constructor_args': self.constructor_args,

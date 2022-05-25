@@ -10,7 +10,7 @@ if 'cuda' in config['DEVICE']:
     torch.backends.cudnn.benchmarks = True
 
 def main():
-    
+
     save_dir = os.path.join(config["LOGS_PATH"], datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
     os.makedirs(save_dir, exist_ok=True)
     with open(os.path.join(save_dir, 'config.json'), 'w') as f:

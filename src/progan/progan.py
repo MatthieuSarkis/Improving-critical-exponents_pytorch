@@ -1,5 +1,4 @@
 from math import log2
-from pickletools import uint8
 import numpy as np
 import os
 import json
@@ -132,11 +131,12 @@ class ProGan():
             for epoch in range(num_epochs):
 
                 print(
-                    "\n Global Step [{}/{}], Epoch [{}/{}], Current image size: {}, Final image size: 128, percolation parameter: {:.4f}".format(
+                    "\n Global Step [{}/{}], Epoch [{}/{}], Current image size: {}, Final image size: {}, percolation parameter: {:.4f}".format(
                         global_step+1, 
                         sum(progressive_epochs), 
                         epoch+1, num_epochs, 
                         4 * 2**step, 
+                        4 * 2**(len(progressive_epochs) - 1),
                         self.statistical_control_parameter)
                 )
 
