@@ -14,7 +14,6 @@ from typing import List, Tuple, Optional
 from src.progan.generator import Generator
 from src.progan.discriminator import Discriminator
 from src.progan.utils import gradient_penalty, plot_to_tensorboard, get_loader, CNNLoss
-from src.progan.config import config
 from src.cnn.cnn import CNN
 
 class ProGan():
@@ -25,12 +24,14 @@ class ProGan():
         in_channels: int,
         channels_img: int,
         learning_rate: float,
+        factors: List[int],
         device: str,
         logs_path: str,
         path_to_trained_model: Optional[str] = None,
         cnn_path: Optional[str] = None,
         statistical_control_parameter: float = 0.5928,
-        use_tensorboard: bool = False
+        use_tensorboard: bool = False,
+        cnn_model_path: Optional[str] = None
     ) -> None:
 
         self.learning_rate = learning_rate
@@ -43,14 +44,16 @@ class ProGan():
         self.use_tensorboard = use_tensorboard
 
         self.generator = Generator(
-            noise_dim, 
-            in_channels, 
+            noise_dim=noise_dim, 
+            in_channels=in_channels, 
+            factors=factors,
             img_channels=channels_img,
         ).to(device)
 
         self.critic = Discriminator(
-            in_channels, 
+            in_channels=in_channels, 
             img_channels=channels_img,
+            factors=factors
         ).to(device)
 
         self.opt_generator = optim.Adam(
@@ -74,8 +77,8 @@ class ProGan():
 
         if cnn_path is not None:
 
-            cnn_checkpoint = torch.load(config['CNN_MODEL_PATH'], map_location=torch.device(config['DEVICE']))
-            cnn_checkpoint['constructor_args']['device'] = config['DEVICE']
+            cnn_checkpoint = torch.load(cnn_model_path, map_location=torch.device(self.device))
+            cnn_checkpoint['constructor_args']['device'] = self.device
             self.cnn = CNN(**cnn_checkpoint['constructor_args'])   
             self.cnn.load_state_dict(cnn_checkpoint['model_state_dict'])
 
@@ -297,6 +300,8 @@ class ProGan():
         n_images: int = 100
     ) -> None:
 
+        image_size = 2**(steps + 2)
+
         self.generator.eval()
 
         for i in tqdm(range(n_images)):
@@ -305,8 +310,8 @@ class ProGan():
 
                 noise = torch.randn(size=(1, self.noise_dim, 1, 1), device=self.device, dtype=torch.float32)
                 image = 0.5 * (torch.sign(self.generator(noise, alpha=1.0, steps=steps)) + 1) # casting the spins to +1 and -1 and shifting to 0, 1.
-                image = image.cpu().type(torch.int8).view(128, 128).numpy()
-                np.save(os.path.join(self.generated_images_path, 'fake_L=128_p={:.4f}_#{}.npy'.format(self.statistical_control_parameter, i+1)), image)
+                image = image.cpu().type(torch.int8).view(image_size, image_size).numpy()
+                np.save(os.path.join(self.generated_images_path, 'fake_L={}_p={:.4f}_#{}.npy'.format(image_size, self.statistical_control_parameter, i+1)), image)
 
         print("*** Images Generated ***")
                 

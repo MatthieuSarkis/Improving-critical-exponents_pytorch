@@ -23,6 +23,7 @@ def main():
         learning_rate=config['LEARNING_RATE'],
         device=config['DEVICE'],
         logs_path=save_dir,
+        factors=config['FACTORS'],
         path_to_trained_model=None,
         cnn_path=config['CNN_MODEL_PATH'],
         statistical_control_parameter=config['PERCOLATION_CONTROL_PARAMETER'],

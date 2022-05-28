@@ -26,10 +26,12 @@ def main(
         learning_rate=config['LEARNING_RATE'],
         device='cpu',
         logs_path=save_dir,
+        factors=config['FACTORS'],
         path_to_trained_model=path_to_trained_model,
         cnn_path=None,
         statistical_control_parameter=config['PERCOLATION_CONTROL_PARAMETER'],
-        use_tensorboard=False
+        use_tensorboard=False,
+        cnn_model_path=config['CNN_MODEL_PATH']
     )
 
     progan.generate_images(
@@ -40,7 +42,7 @@ def main(
 if __name__ == '__main__':
 
     main(
-        path_to_trained_model='.saved_models/progan/L=256',
+        path_to_trained_model='./saved_models/progan/L=256',
         n_images=5000
     )
 
