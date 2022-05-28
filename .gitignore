@@ -5,7 +5,8 @@ __pycache__
 .vscode/
 *.code-workspace
 data/
-saved_models/
+#saved_models/
+*images/
 *.gif
 *.egg-info/
 *.out
