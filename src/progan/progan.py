@@ -15,6 +15,7 @@ from src.progan.generator import Generator
 from src.progan.discriminator import Discriminator
 from src.progan.utils import gradient_penalty, plot_to_tensorboard, get_loader, CNNLoss
 from src.cnn.cnn import CNN
+from src.data_factory.percolation import generate_percolation_data
 
 class ProGan():
 
@@ -105,6 +106,7 @@ class ProGan():
         progressive_epochs: List[int],
         lambda_gp: float,
         fixed_noise: torch.tensor,
+        batch_sizes: List[int],
         dataset_size: int,
         save_model: bool = True,
         cnn_loss_ratio: Optional[float] = None
@@ -127,6 +129,7 @@ class ProGan():
             
             loader = get_loader(
                 image_size=4 * 2**step, 
+                batch_sizes=batch_sizes,
                 dataset_size=dataset_size, 
                 statistical_control_parameter=self.statistical_control_parameter
             )
@@ -302,16 +305,27 @@ class ProGan():
 
         image_size = 2**(steps + 2)
 
+        os.makedirs(os.path.join(self.generated_images_path, 'real'), exist_ok=True)
+        os.makedirs(os.path.join(self.generated_images_path, 'fake'), exist_ok=True)
+
         self.generator.eval()
 
         for i in tqdm(range(n_images)):
 
+            real_image = generate_percolation_data(
+                dataset_size=1, 
+                lattice_size=image_size,
+                p_list=[self.statistical_control_parameter],
+                split=False
+            )
+
             with torch.no_grad():
 
                 noise = torch.randn(size=(1, self.noise_dim, 1, 1), device=self.device, dtype=torch.float32)
-                image = 0.5 * (torch.sign(self.generator(noise, alpha=1.0, steps=steps)) + 1) # casting the spins to +1 and -1 and shifting to 0, 1.
-                image = image.cpu().type(torch.int8).view(image_size, image_size).numpy()
-                np.save(os.path.join(self.generated_images_path, 'fake_L={}_p={:.4f}_#{}.npy'.format(image_size, self.statistical_control_parameter, i+1)), image)
+                fake_image = 0.5 * (torch.sign(self.generator(noise, alpha=1.0, steps=steps)) + 1) # casting the spins to +1 and -1 and shifting to 0, 1.
+                fake_image = fake_image.cpu().type(torch.int8).view(image_size, image_size).numpy()
+                np.save(os.path.join(self.generated_images_path, 'real', 'real_L={}_p={:.4f}_#{}.npy'.format(image_size, self.statistical_control_parameter, i+1)), real_image)
+                np.save(os.path.join(self.generated_images_path, 'fake', 'fake_L={}_p={:.4f}_#{}.npy'.format(image_size, self.statistical_control_parameter, i+1)), fake_image)
 
         print("*** Images Generated ***")
                 

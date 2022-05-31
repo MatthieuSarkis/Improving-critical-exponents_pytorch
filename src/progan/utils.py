@@ -4,7 +4,6 @@ from torch.utils.data import DataLoader
 from math import log2
 from typing import Dict
 
-from src.progan.config import config
 from src.data_factory.percolation import generate_percolation_data
 
 class CNNLoss(torch.nn.Module):
@@ -43,11 +42,12 @@ class CNNLoss(torch.nn.Module):
 
 def get_loader(
     image_size: int, 
-    dataset_size: int = 5000,
+    dataset_size: int,
+    batch_sizes: int = 64,
     statistical_control_parameter: float = 0.5928
 ) -> torch.utils.data.dataloader.DataLoader:
     
-    batch_size = config['BATCH_SIZES'][int(log2(image_size / 4))]
+    batch_size = batch_sizes[int(log2(image_size / 4))]
 
     dataset, _ = generate_percolation_data(
         dataset_size=dataset_size, 
@@ -60,7 +60,7 @@ def get_loader(
         dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=config['NUM_WORKERS'],
+        num_workers=4,
         pin_memory=True,
     )
 

@@ -1,15 +1,16 @@
 from datetime import datetime
 import json
+import math
 import os
 import torch
+from argparse import ArgumentParser
 
-from src.progan.config import config
 from src.progan.progan import ProGan
 
-if 'cuda' in config['DEVICE']:
-    torch.backends.cudnn.benchmarks = True
+def main(config: dict) -> None:
 
-def main():
+    if 'cuda' in config['DEVICE']:
+        torch.backends.cudnn.benchmarks = True
 
     save_dir = os.path.join(config["LOGS_PATH"], datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
     os.makedirs(save_dir, exist_ok=True)
@@ -34,6 +35,7 @@ def main():
         start_train_at_img_size=config['START_TRAIN_AT_IMG_SIZE'],
         progressive_epochs=config['PROGRESSIVE_EPOCHS'],
         lambda_gp=config['LAMBDA_GP'],
+        batch_sizes=config['BATCH_SIZES'],
         fixed_noise=torch.randn(8, config['NOISE_DIM'], 1, 1).to(config['DEVICE']),
         dataset_size=config['DATASET_SIZE'],
         save_model=config['SAVE_MODEL'],
@@ -41,5 +43,32 @@ def main():
     )
 
 if __name__ == "__main__":
+    
+    parser = ArgumentParser()
+    parser.add_argument("--max_image_size", type=int, default=128)
+    args = parser.parse_args()
 
-    main()
+    n = int(math.log2(args.max_image_size) - 1)
+
+    config = {
+        "START_TRAIN_AT_IMG_SIZE": 4,
+        "LOGS_PATH": "saved_models/progan/",
+        "SAVE_MODEL": True,
+        "DEVICE": "cuda" if torch.cuda.is_available() else "cpu",
+        "DATASET_SIZE": 20000,
+        "LEARNING_RATE": 1e-3,
+        "CHANNELS_IMG": 1,
+        "NOISE_DIM": 256,
+        "IN_CHANNELS": 256,
+        "LAMBDA_GP": 10,
+        "FACTORS": [2**(-n) for n in range(n)],
+        "BATCH_SIZES": [64 for _ in range(n)],
+        "PROGRESSIVE_EPOCHS": [80] * (n-1) + [350],
+        "PERCOLATION_CONTROL_PARAMETER": 0.5928,
+        #"CNN_MODEL_PATH": "./trained_models_DoNotErase/cnn/2022.02.11.18.36.08/model/final_model.pt",
+        "CNN_MODEL_PATH": None,
+        "CNN_LOSS_RATIO": 0.1,
+        "USE_TENSORBOARD": True
+    }
+
+    main(config=config)

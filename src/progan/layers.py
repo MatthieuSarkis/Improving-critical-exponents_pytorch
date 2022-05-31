@@ -68,6 +68,7 @@ class ConvBlock(nn.Module):
 
         self.conv1 = WSConv2d(in_channels=in_channels, out_channels=out_channels)
         self.conv2 = WSConv2d(in_channels=out_channels, out_channels=out_channels)
+        self.conv3 = WSConv2d(in_channels=out_channels, out_channels=out_channels) # added
         self.leaky = nn.LeakyReLU(0.2)
         self.pn = PixelNorm()
 
@@ -80,5 +81,7 @@ class ConvBlock(nn.Module):
         x = self.pn(x) if self.use_pixelnorm else x
         x = self.leaky(self.conv2(x))
         x = self.pn(x) if self.use_pixelnorm else x
+        x = self.leaky(self.conv3(x)) # added
+        x = self.pn(x) if self.use_pixelnorm else x # added
 
         return x
