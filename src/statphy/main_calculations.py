@@ -12,9 +12,9 @@
 
 
 ## INITIAL PARAMETERS
-INPUT_DIR = '../../generated_data/model_progan_2022.05.13.13.43.18'
 p = 0.5928
-L = 1500
+L = 2048
+INPUT_DIR = f'../../generated_data/model_progan_L_{L}_p_{p}'
 max_n_samples = 100
 OUPUT_DIR_figs = 'output_files--calc-gr-all-clusters/fig'
 OUPUT_DIR_data = 'output_files--calc-gr-all-clusters/txt'
