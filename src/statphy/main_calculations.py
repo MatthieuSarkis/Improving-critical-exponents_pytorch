@@ -13,14 +13,14 @@
 
 ## INITIAL PARAMETERS
 p = 0.5928
-L = 2048
+L = 256
 INPUT_DIR = f'../../generated_data/model_progan_L_{L}_p_{p}'
-max_n_samples = 100
+max_n_samples = 1000
 OUPUT_DIR_figs = 'output_files--calc-gr-all-clusters/fig'
 OUPUT_DIR_data = 'output_files--calc-gr-all-clusters/txt'
 
-clustering_sample_images = False
-calc_stat_of_real_imgs = True
+clustering_sample_images = True
+calc_stat_of_real_imgs = False
 calc_stat_of_fake_imgs = False
 
 ## IMPORT MODULES
@@ -72,6 +72,7 @@ def do_all_statistics_jobs(img_gen, img_shape, suffix='real'):
                     sim_st=f'$L={L}$', xlabel='$r$', ylabel='$g(r)$',
                     scale_xy_logplot= 1.05,
                     show_slope=True, xlow=2, xup=15, slope_st='\\eta' ,
+                    precision=3,
                     marker='.', markersize=None, show_legend=True, 
                     outfilename=f'{OUPUT_DIR_figs}/gr_{suffix}({datainfo}).pdf')
     plt.close()
