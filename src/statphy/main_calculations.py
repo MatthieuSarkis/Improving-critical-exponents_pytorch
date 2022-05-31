@@ -13,14 +13,14 @@
 
 ## INITIAL PARAMETERS
 p = 0.5928
-L = 256
+L = 2500
 INPUT_DIR = f'../../generated_data/model_progan_L_{L}_p_{p}'
-max_n_samples = 1000
+max_n_samples = 100
 OUPUT_DIR_figs = 'output_files--calc-gr-all-clusters/fig'
 OUPUT_DIR_data = 'output_files--calc-gr-all-clusters/txt'
 
-clustering_sample_images = True
-calc_stat_of_real_imgs = False
+clustering_sample_images = False
+calc_stat_of_real_imgs = True
 calc_stat_of_fake_imgs = False
 
 ## IMPORT MODULES
