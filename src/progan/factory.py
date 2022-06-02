@@ -42,7 +42,7 @@ def main(
 if __name__ == '__main__':
 
     main(
-        path_to_trained_model='./saved_models/progan/L=256',
+        path_to_trained_model='./saved_models/progan/L=64',
         n_images=5000
     )
 

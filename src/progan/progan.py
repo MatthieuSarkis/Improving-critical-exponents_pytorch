@@ -312,12 +312,14 @@ class ProGan():
 
         for i in tqdm(range(n_images)):
 
-            real_image = generate_percolation_data(
+            real_image, _ = generate_percolation_data(
                 dataset_size=1, 
                 lattice_size=image_size,
                 p_list=[self.statistical_control_parameter],
                 split=False
             )
+
+            real_image = ((real_image + 1) / 2).type(torch.int8)
 
             with torch.no_grad():
 
