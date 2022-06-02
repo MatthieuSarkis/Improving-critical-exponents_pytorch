@@ -13,14 +13,16 @@
 
 ## INITIAL PARAMETERS
 p = 0.5928
-L = 2500
-INPUT_DIR = f'../../generated_data/model_progan_L_{L}_p_{p}'
-max_n_samples = 100
-OUPUT_DIR_figs = 'output_files--calc-gr-all-clusters/fig'
-OUPUT_DIR_data = 'output_files--calc-gr-all-clusters/txt'
+L = 16
+INPUT_DIR_FAKE = f'../../generated_data/model_progan_L_{L}_p_{p}/fake'
+INPUT_DIR_REAL = f'../../generated_data/model_progan_L_{L}_p_{p}/real'
+max_n_samples = 5000
+OUPUT_DIR_figs = 'output_files/fig'
+OUPUT_DIR_data = 'output_files/txt'
 
-clustering_sample_images = False
-calc_stat_of_real_imgs = True
+read_real_images_from_dir = False
+clustering_sample_images = True
+calc_stat_of_real_imgs = False
 calc_stat_of_fake_imgs = False
 
 ## IMPORT MODULES
@@ -81,9 +83,14 @@ def do_all_statistics_jobs(img_gen, img_shape, suffix='real'):
 if __name__ == '__main__':
 
     print(40*'-')
-    filelist = glob.glob(INPUT_DIR + '/' + f'fake_L={L}_p={p}_*.npy')
-    if len(filelist) == 0:
-        print('There is no file in dir ', INPUT_DIR)
+    filelist_fake = glob.glob(INPUT_DIR_FAKE + '/' + f'fake_L={L}_p={p}_*.npy')
+    if len(filelist_fake) == 0:
+        print('There is no file in dir_fake ', INPUT_DIR_FAKE)
+    
+    filelist_real = glob.glob(INPUT_DIR_REAL + '/' + f'real_L={L}_p={p}_*.npy')
+    if len(filelist_real) == 0:
+        print('There is no file in dir_real ', INPUT_DIR_REAL)
+
     os.makedirs(OUPUT_DIR_figs, exist_ok=True)
     os.makedirs(OUPUT_DIR_data, exist_ok=True)
     print (f'# L={L} p={p} max_n_samples={max_n_samples}')
@@ -95,34 +102,45 @@ if __name__ == '__main__':
     if clustering_sample_images:
         print ('Clustering some of real/fake images ...')
         n_samples = 5
-        np.random.seed(72)
-        imgs_real = [ make_perc_func(L, p)() for i in range(n_samples) ]
-
-        # now plot some samples
+        if read_real_images_from_dir and filelist_real and len(filelist_real) > 0:
+            print(len(filelist_real))
+            img  = np.load(filelist_real[0])
+            import sys
+            print(img)
+            sys.exit()
+            imgs = [np.load(path) for path in filelist_real[:n_samples]]
+        else:
+            np.random.seed(72)
+            imgs = [ make_perc_func(L, p)() for i in range(n_samples) ]
         plt.figure()
-        labels_real, _ = geometric_measure.clustering(imgs_real, lower_size=5)
-        plot_func.plot_imgs_labels(plt, imgs_real, labels_real, outfilename=f'{OUPUT_DIR_figs}/imgs_real(L={L}).pdf')
+        labels, _ = geometric_measure.clustering(imgs, lower_size=5)
+        plot_func.plot_imgs_labels(plt, imgs, labels, outfilename=f'{OUPUT_DIR_figs}/imgs_real(L={L}).pdf')
         plt.close()
 
-        if filelist and len(filelist) > 0:
-            imgs_fake = [np.load(path) for path in filelist[:n_samples]]
+
+        if filelist_fake and len(filelist_fake) > 0:
+            imgs = [np.load(path) for path in filelist_fake[:n_samples]]
             plt.figure()
-            labels_fake, _ = geometric_measure.clustering(imgs_fake, lower_size=5)
-            plot_func.plot_imgs_labels(plt, imgs_fake, labels_fake, outfilename=f'{OUPUT_DIR_figs}/imgs_fake(L={L}).pdf')
+            labels, _ = geometric_measure.clustering(imgs, lower_size=5)
+            plot_func.plot_imgs_labels(plt, imgs, labels, outfilename=f'{OUPUT_DIR_figs}/imgs_fake(L={L}).pdf')
             plt.close()
 
 
     # DO STATISTICS
     if calc_stat_of_real_imgs:
         print ('Doing calculations on the real images ...')
-        np.random.seed(72)
-        img_gen = gen_class.GenUsingFunc(make_perc_func(L, p), max_n_samples)
+
+        if read_real_images_from_dir and filelist_real and len(filelist_real) > 0:
+            img_gen = gen_class.GenUsingFile(filelist_real, max_n_samples)
+        else:
+            np.random.seed(72)
+            img_gen = gen_class.GenUsingFunc(make_perc_func(L, p), max_n_samples)
         do_all_statistics_jobs(img_gen, img_shape=(L,L), suffix='real')
 
     if calc_stat_of_fake_imgs:
-        if filelist and len(filelist) > 0:
+        if filelist_fake and len(filelist_fake) > 0:
             print ('Doing calculations on the fake images ...')
-            img_gen = gen_class.GenUsingFile(filelist, max_n_samples)
+            img_gen = gen_class.GenUsingFile(filelist_fake, max_n_samples)
             do_all_statistics_jobs(img_gen, img_shape=(L,L), suffix='fake')
 
 
