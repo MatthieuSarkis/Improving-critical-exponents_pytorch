@@ -16,11 +16,11 @@ p = 0.5928
 L = 16
 INPUT_DIR_FAKE = f'../../generated_data/model_progan_L_{L}_p_{p}/fake'
 INPUT_DIR_REAL = f'../../generated_data/model_progan_L_{L}_p_{p}/real'
-max_n_samples = 5000
+max_n_samples = 100
 OUPUT_DIR_figs = 'output_files/fig'
 OUPUT_DIR_data = 'output_files/txt'
 
-read_real_images_from_dir = False
+read_real_images_from_dir = True
 clustering_sample_images = True
 calc_stat_of_real_imgs = False
 calc_stat_of_fake_imgs = False
@@ -32,6 +32,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import geometric_measure
 import plot_func
+import sys
 from modules import gen_class
 
 # AUXILIARY FUNCTIONS
@@ -95,7 +96,16 @@ if __name__ == '__main__':
     os.makedirs(OUPUT_DIR_data, exist_ok=True)
     print (f'# L={L} p={p} max_n_samples={max_n_samples}')
     print (f'# out_dir_figs={OUPUT_DIR_figs}, out_dir_data={OUPUT_DIR_data}')
+    if read_real_images_from_dir and filelist_real and len(filelist_real) > 0:
+        print(f'reading real images from dir: {INPUT_DIR_REAL} nfiles={len(filelist_real)}')
+    else:
+        print(f'creating real images using function.')
+    if filelist_fake and len(filelist_fake) > 0:
+        print(f'reading fake images from dir: {INPUT_DIR_FAKE} nfiles={len(filelist_fake)}')
+    
     print(40*'-')
+
+    
 
 
     # CLUSTERING THE TEST IMAGES
@@ -103,9 +113,8 @@ if __name__ == '__main__':
         print ('Clustering some of real/fake images ...')
         n_samples = 5
         if read_real_images_from_dir and filelist_real and len(filelist_real) > 0:
-            print(len(filelist_real))
-            img  = np.load(filelist_real[0])
-            import sys
+            print(filelist_real[0])
+            img = np.load[filelist_real[0]]
             print(img)
             sys.exit()
             imgs = [np.load(path) for path in filelist_real[:n_samples]]
