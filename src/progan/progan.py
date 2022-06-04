@@ -319,7 +319,7 @@ class ProGan():
                 split=False
             )
 
-            real_image = ((real_image + 1) / 2).type(torch.int8)
+            real_image = ((real_image + 1) / 2).view(size=(image_size, image_size)).type(torch.int8)
 
             with torch.no_grad():
 
