@@ -5,7 +5,7 @@ import plot_func
 #================================
 basename = 'gr'
 p = 0.5928
-L_arr = [128, 256, 512, 800, 1024, 2048]
+L_arr = [16, 32, 64,] #128, 256, 512, 800, 1024, 2048]
 INPUT_DIR = 'output_files/txt'
 OUPUT_DIR = 'output_files/fig_distributions'
 #================================
