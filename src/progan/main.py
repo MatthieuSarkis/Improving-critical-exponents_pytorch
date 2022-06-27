@@ -30,12 +30,12 @@ def main(config: dict) -> None:
         factors=config['FACTORS'],
         path_to_trained_model=None,
         cnn_path=config['CNN_MODEL_PATH'],
+        stat_phys_model=config['STAT_PHYS_MODEL'],
         statistical_control_parameter=config['CONTROL_PARAMETER'],
         use_tensorboard=config['USE_TENSORBOARD']
     )
 
     progan._train(
-        stat_phys_model=config['STAT_PHYS_MODEL'],
         start_train_at_img_size=config['START_TRAIN_AT_IMG_SIZE'],
         progressive_epochs=config['PROGRESSIVE_EPOCHS'],
         lambda_gp=config['LAMBDA_GP'],

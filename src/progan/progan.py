@@ -30,6 +30,7 @@ class ProGan():
         logs_path: str,
         path_to_trained_model: Optional[str] = None,
         cnn_path: Optional[str] = None,
+        stat_phys_model: str = 'percolation',
         statistical_control_parameter: float = 0.5928,
         use_tensorboard: bool = False,
         cnn_model_path: Optional[str] = None
@@ -41,6 +42,7 @@ class ProGan():
         if path_to_trained_model is None:
             self.logs_dir_checkpoints, self.logs_dir_images, self.save_dir_losses, self.logs_dir_tensorboard = self.build_logs_directories(logs_path=logs_path, use_tensorboard=use_tensorboard)
         self.noise_dim = noise_dim
+        self.stat_phys_model = stat_phys_model
         self.statistical_control_parameter = statistical_control_parameter
         self.use_tensorboard = use_tensorboard
 
@@ -102,7 +104,6 @@ class ProGan():
 
     def _train(
         self,
-        stat_phys_model: str,
         start_train_at_img_size: int,
         progressive_epochs: List[int],
         lambda_gp: float,
@@ -132,7 +133,7 @@ class ProGan():
                 image_size=4 * 2**step,
                 batch_sizes=batch_sizes,
                 dataset_size=dataset_size,
-                stat_phys_model=stat_phys_model,
+                stat_phys_model=self.stat_phys_model,
                 statistical_control_parameter=self.statistical_control_parameter
             )
 
@@ -145,7 +146,7 @@ class ProGan():
                         epoch+1, num_epochs,
                         4 * 2**step,
                         4 * 2**(len(progressive_epochs) - 1),
-                        stat_phys_model,
+                        self.stat_phys_model,
                         self.statistical_control_parameter)
                 )
 
@@ -315,12 +316,21 @@ class ProGan():
 
         for i in tqdm(range(n_images)):
 
-            real_image, _ = generate_percolation_data(
-                dataset_size=1,
-                lattice_size=image_size,
-                p_list=[self.statistical_control_parameter],
-                split=False
-            )
+            if self.stat_phys_model == 'percolation':
+
+                real_image, _ = generate_percolation_data(
+                    dataset_size=1,
+                    lattice_size=image_size,
+                    p_list=[self.statistical_control_parameter],
+                    split=False
+                )
+
+            elif self.stat_phys_model == "ising":
+
+                with open('./data/ising/L={}/T={:.4f}.bin'.format(image_size, self.statistical_control_parameter), 'rb') as f:
+                   real_image = torch.frombuffer(buffer=f.read(), dtype=torch.int8, offset=0).reshape(-1, 1, image_size, image_size)
+                   idx = np.random.randint(real_image.shape[0])
+                   real_image = real_image[idx: idx+1].type(torch.float32)
 
             real_image = ((real_image + 1) / 2).type(torch.int8)
 

@@ -62,7 +62,7 @@ def get_loader(
     elif stat_phys_model == "ising":
 
         with open('./data/ising/L={}/T={:.4f}.bin'.format(image_size, statistical_control_parameter), 'rb') as f:
-           dataset = torch.frombuffer(buffer=f.read(), dtype=torch.int8, offset=0).reshape(-1, 1, image_size, image_size)[:dataset_size].type(torch.float32)
+            dataset = torch.frombuffer(buffer=f.read(), dtype=torch.int8, offset=0).reshape(-1, 1, image_size, image_size)[:dataset_size].type(torch.float32)
 
     loader = DataLoader(
         dataset,
