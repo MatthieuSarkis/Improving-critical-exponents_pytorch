@@ -1,0 +1,41 @@
+{
+    "START_TRAIN_AT_IMG_SIZE": 4,
+    "LOGS_PATH": "saved_models/progan/",
+    "STAT_PHYS_MODEL": "ising",
+    "SAVE_MODEL": true,
+    "DEVICE": "cpu",
+    "DATASET_SIZE": 20000,
+    "LEARNING_RATE": 0.001,
+    "CHANNELS_IMG": 1,
+    "NOISE_DIM": 256,
+    "IN_CHANNELS": 256,
+    "LAMBDA_GP": 10,
+    "FACTORS": [
+        1,
+        0.5,
+        0.25,
+        0.125,
+        0.0625,
+        0.03125
+    ],
+    "BATCH_SIZES": [
+        64,
+        64,
+        64,
+        64,
+        64,
+        64
+    ],
+    "PROGRESSIVE_EPOCHS": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        350
+    ],
+    "CONTROL_PARAMETER": 2.269185314213022,
+    "CNN_MODEL_PATH": null,
+    "CNN_LOSS_RATIO": 0.1,
+    "USE_TENSORBOARD": true
+}

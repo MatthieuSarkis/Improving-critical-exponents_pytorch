@@ -39,7 +39,7 @@ class WSConv2d(nn.Module):
 
 
 class PixelNorm(nn.Module):
-    
+
     def __init__(self) -> None:
 
         super(PixelNorm, self).__init__()
@@ -54,7 +54,7 @@ class PixelNorm(nn.Module):
 
 
 class ConvBlock(nn.Module):
-    
+
     def __init__(
         self,
         in_channels: int,
