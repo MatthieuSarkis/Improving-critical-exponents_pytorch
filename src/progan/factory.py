@@ -12,10 +12,10 @@ def main(
 
     with open(os.path.join(path_to_trained_model, 'config.json')) as f:
         config = json.load(f)
-    
+
     if 'cuda' in config['DEVICE']:
         torch.backends.cudnn.benchmarks = True
-    
+
     save_dir = os.path.join('generated_data', 'model_progan_' + path_to_trained_model.split('/')[-1])
     os.makedirs(save_dir, exist_ok=True)
 
@@ -42,7 +42,7 @@ def main(
 if __name__ == '__main__':
 
     main(
-        path_to_trained_model='./saved_models/progan/L=32',
+        path_to_trained_model='./saved_models/progan/L=64',
         n_images=5000
     )
 
