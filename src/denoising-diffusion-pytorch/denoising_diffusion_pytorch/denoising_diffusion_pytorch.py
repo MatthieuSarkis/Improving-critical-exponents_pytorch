@@ -793,8 +793,10 @@ class Dataset(Dataset):
 
     def __getitem__(self, index):
         path = self.paths[index]
-        img = Image.open(path)
-        return self.transform(img)
+        im = torch.load(path)
+        #img = Image.open(path)
+        #return self.transform(img)
+        return im
 
 # trainer class
 
