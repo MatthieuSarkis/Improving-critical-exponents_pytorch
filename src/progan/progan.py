@@ -30,6 +30,7 @@ class ProGan():
         logs_path: str,
         path_to_trained_model: Optional[str] = None,
         cnn_path: Optional[str] = None,
+        stat_phys_model: str = 'percolation',
         statistical_control_parameter: float = 0.5928,
         use_tensorboard: bool = False,
         cnn_model_path: Optional[str] = None
@@ -41,31 +42,32 @@ class ProGan():
         if path_to_trained_model is None:
             self.logs_dir_checkpoints, self.logs_dir_images, self.save_dir_losses, self.logs_dir_tensorboard = self.build_logs_directories(logs_path=logs_path, use_tensorboard=use_tensorboard)
         self.noise_dim = noise_dim
+        self.stat_phys_model = stat_phys_model
         self.statistical_control_parameter = statistical_control_parameter
         self.use_tensorboard = use_tensorboard
 
         self.generator = Generator(
-            noise_dim=noise_dim, 
-            in_channels=in_channels, 
+            noise_dim=noise_dim,
+            in_channels=in_channels,
             factors=factors,
             img_channels=channels_img,
         ).to(device)
 
         self.critic = Discriminator(
-            in_channels=in_channels, 
+            in_channels=in_channels,
             img_channels=channels_img,
             factors=factors
         ).to(device)
 
         self.opt_generator = optim.Adam(
-            self.generator.parameters(), 
-            lr=learning_rate, 
+            self.generator.parameters(),
+            lr=learning_rate,
             betas=(0.0, 0.99)
         )
 
         self.opt_critic = optim.Adam(
-            self.critic.parameters(), 
-            lr=learning_rate, 
+            self.critic.parameters(),
+            lr=learning_rate,
             betas=(0.0, 0.99)
         )
 
@@ -80,12 +82,12 @@ class ProGan():
 
             cnn_checkpoint = torch.load(cnn_model_path, map_location=torch.device(self.device))
             cnn_checkpoint['constructor_args']['device'] = self.device
-            self.cnn = CNN(**cnn_checkpoint['constructor_args'])   
+            self.cnn = CNN(**cnn_checkpoint['constructor_args'])
             self.cnn.load_state_dict(cnn_checkpoint['model_state_dict'])
 
             self.cnn_criterion = CNNLoss(
-                loss_function=nn.L1Loss(reduction='sum'), 
-                cnn=self.cnn, 
+                loss_function=nn.L1Loss(reduction='sum'),
+                cnn=self.cnn,
                 wanted_output=statistical_control_parameter
             )
 
@@ -126,23 +128,25 @@ class ProGan():
         for num_epochs in progressive_epochs[step:]:
 
             alpha = 1e-5
-            
+
             loader = get_loader(
-                image_size=4 * 2**step, 
+                image_size=4 * 2**step,
                 batch_sizes=batch_sizes,
-                dataset_size=dataset_size, 
+                dataset_size=dataset_size,
+                stat_phys_model=self.stat_phys_model,
                 statistical_control_parameter=self.statistical_control_parameter
             )
 
             for epoch in range(num_epochs):
 
                 print(
-                    "\n Global Step [{}/{}], Epoch [{}/{}], Current image size: {}, Final image size: {}, percolation parameter: {:.4f}".format(
-                        global_step+1, 
-                        sum(progressive_epochs), 
-                        epoch+1, num_epochs, 
-                        4 * 2**step, 
+                    "\n Global Step [{}/{}], Epoch [{}/{}], Current image size: {}, Final image size: {}, stat_phys_model: {}, percolation parameter: {:.4f}".format(
+                        global_step+1,
+                        sum(progressive_epochs),
+                        epoch+1, num_epochs,
+                        4 * 2**step,
                         4 * 2**(len(progressive_epochs) - 1),
+                        self.stat_phys_model,
                         self.statistical_control_parameter)
                 )
 
@@ -219,7 +223,7 @@ class ProGan():
 
                     if use_cnn:
                         cnn_loss = self.cnn_criterion(fake)
-                        loss_gen += cnn_loss_ratio * cnn_loss / fake.shape[0]   # because we used reduction='sum' 
+                        loss_gen += cnn_loss_ratio * cnn_loss / fake.shape[0]   # because we used reduction='sum'
 
                 self.opt_generator.zero_grad()
                 self.scaler_gen.scale(loss_gen).backward()
@@ -246,7 +250,7 @@ class ProGan():
 
                 if use_cnn:
                     cnn_loss = self.cnn_criterion(fake)
-                    loss_gen += cnn_loss_ratio * cnn_loss / fake.shape[0]   # because we used reduction='sum' 
+                    loss_gen += cnn_loss_ratio * cnn_loss / fake.shape[0]   # because we used reduction='sum'
 
                 self.opt_generator.zero_grad()
                 loss_gen.backward()
@@ -312,12 +316,21 @@ class ProGan():
 
         for i in tqdm(range(n_images)):
 
-            real_image, _ = generate_percolation_data(
-                dataset_size=1, 
-                lattice_size=image_size,
-                p_list=[self.statistical_control_parameter],
-                split=False
-            )
+            if self.stat_phys_model == 'percolation':
+
+                real_image, _ = generate_percolation_data(
+                    dataset_size=1,
+                    lattice_size=image_size,
+                    p_list=[self.statistical_control_parameter],
+                    split=False
+                )
+
+            elif self.stat_phys_model == "ising":
+
+                with open('./data/ising/L={}/T={:.4f}.bin'.format(image_size, self.statistical_control_parameter), 'rb') as f:
+                   real_image = torch.frombuffer(buffer=f.read(), dtype=torch.int8, offset=0).reshape(-1, 1, image_size, image_size)
+                   idx = np.random.randint(real_image.shape[0])
+                   real_image = real_image[idx: idx+1].type(torch.float32)
 
             real_image = ((real_image + 1) / 2).view(size=(image_size, image_size)).type(torch.int8)
 
@@ -330,12 +343,12 @@ class ProGan():
                 np.save(os.path.join(self.generated_images_path, 'fake', 'fake_L={}_p={:.4f}_#{}.npy'.format(image_size, self.statistical_control_parameter, i+1)), fake_image)
 
         print("*** Images Generated ***")
-                
+
     def save_checkpoint(self) -> None:
 
         gen_checkpoint_path = os.path.join(self.logs_dir_checkpoints, 'generator.pt')
         critic_checkpoint_path = os.path.join(self.logs_dir_checkpoints, 'critic.pt')
-    
+
         gen_checkpoint = {
             "state_dict": self.generator.state_dict(),
             "optimizer": self.opt_generator.state_dict(),
@@ -388,7 +401,7 @@ class ProGan():
             logs_dir_tensorboard = os.path.join(logs_path, 'tensorboard')
             os.makedirs(logs_dir_tensorboard, exist_ok=True)
 
-        else: 
+        else:
             logs_dir_tensorboard = None
 
         return logs_dir_checkpoints, logs_dir_images, logs_dir_losses, logs_dir_tensorboard
