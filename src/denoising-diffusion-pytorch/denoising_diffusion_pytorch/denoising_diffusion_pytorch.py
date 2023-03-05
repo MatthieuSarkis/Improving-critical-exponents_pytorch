@@ -990,8 +990,13 @@ class Trainer(object):
                             all_images_list = list(map(lambda n: self.ema.ema_model.sample(batch_size=n), batches))
 
                         all_images = torch.cat(all_images_list, dim = 0)
+                        #all_images = 0.5 * (torch.sign(2 * all_images[:,0,:,:] - 1) + 1)
+                        all_images = 0.5 * (torch.sign(2 * all_images - 1) + 1)
+                        #all_images = all_images[:,0,:,:].to('cpu', torch.uint8).numpy()
+                        import numpy as np
+                        np.save(str(self.results_folder / f'sample-{milestone}'), (0.5 * (torch.sign(2 * all_images - 1) + 1)).to('cpu', torch.uint8).numpy())
 
-                        utils.save_image(all_images, str(self.results_folder / f'sample-{milestone}.png'), nrow = int(math.sqrt(self.num_samples)))
+                        #utils.save_image(all_images, str(self.results_folder / f'sample-{milestone}.png'), nrow = int(math.sqrt(self.num_samples)))
                         self.save(milestone)
 
                         # whether to calculate fid

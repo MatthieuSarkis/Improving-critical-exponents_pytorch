@@ -3,9 +3,9 @@ from denoising_diffusion_pytorch import Unet, GaussianDiffusion, Trainer
 from src.data_factory.percolation import generate_percolation_data
 import os
 
-IMAGE_SIZE = 32
-DATASET_SIZE = 10
-BATCH_SIZE = 2
+IMAGE_SIZE = 16
+DATASET_SIZE = 1024
+BATCH_SIZE = 16
 PERCOLATION_PARAMETER = 0.5
 
 X, _ = generate_percolation_data(
@@ -17,7 +17,7 @@ X, _ = generate_percolation_data(
 )
 
 X = (X + 1) / 2
-#X = X.repeat((1, 1, 1, 1)) # I add fake color channels because I don't find how to use their code with only 1 color channel...
+X = X.repeat((1, 3, 1, 1)) # I add fake color channels because I don't find how to use their code with only 1 color channel...
 
 data_folder = './src/denoising-diffusion-pytorch/data'
 results_folder = './src/denoising-diffusion-pytorch/results'
@@ -30,16 +30,16 @@ for i in range(X.shape[0]):
 model = Unet(
     dim = 64,
     dim_mults = (1, 2, 4, 8),
-    channels = 1
+    channels = 3
 )
 
 diffusion = GaussianDiffusion(
     model,
     image_size = IMAGE_SIZE,
-    #timesteps = 1000,           # number of steps
-    timesteps = 1,           # number of steps
-    #sampling_timesteps = 250,   # number of sampling timesteps (using ddim for faster inference [see citation for ddim paper])
-    sampling_timesteps = 1,   # number of sampling timesteps (using ddim for faster inference [see citation for ddim paper])
+    timesteps = 1000,           # number of steps
+    #timesteps = 1,           # number of steps
+    sampling_timesteps = 250,   # number of sampling timesteps (using ddim for faster inference [see citation for ddim paper])
+    #sampling_timesteps = 1,   # number of sampling timesteps (using ddim for faster inference [see citation for ddim paper])
     loss_type = 'l1'            # L1 or L2
 )
 
@@ -49,11 +49,11 @@ trainer = Trainer(
     train_batch_size = BATCH_SIZE,
     augment_horizontal_flip = False,
     #save_and_sample_every = 1000,
-    save_and_sample_every = 1,
+    save_and_sample_every = 10,
     results_folder = results_folder,
     train_lr = 8e-5,
     #train_num_steps = 700000,         # total training steps
-    train_num_steps = 2,         # total training steps
+    train_num_steps = 1000,         # total training steps
     gradient_accumulate_every = 2,    # gradient accumulation steps
     ema_decay = 0.995,                # exponential moving average decay
     amp = True,                       # turn on mixed precision

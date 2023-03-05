@@ -5,6 +5,7 @@ __pycache__
 .vscode/
 *.code-workspace
 data/
+*.pt
 #saved_models/
 *images/
 *.gif
