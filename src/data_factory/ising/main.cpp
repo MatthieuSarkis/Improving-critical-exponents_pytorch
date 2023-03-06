@@ -42,7 +42,7 @@ int main()
     fs::create_directory(dir_name);
 
     unsigned seed = static_cast<unsigned int>(chrono::steady_clock::now().time_since_epoch().count());
-    
+
     vector<float> T;
     //for (int i = 0; i <= (int)((T_max - T_min) / dT); i++)
     //{
@@ -50,14 +50,14 @@ int main()
     //}
     T.push_back(Tc);
     sort(T.begin(), T.end(), greater<float>());
-    
+
     Metropolis model(L, 3.0);
     model.set_seed(seed);
     model.initialize_spins();
     int n_steps = 0;
-    
+
     Progress progress((int)T.size());
-    
+
     for (int i = 0; i < T.size(); i++)
     {
         string file_name;
@@ -66,16 +66,16 @@ int main()
         ss << setprecision(4);
         ss << "T=" << T[i];
         file_name = ss.str();
-        
+
         ofstream file((dir_name + "/" + file_name + ".bin").c_str(), ios::out | ios::binary);
-        
+
         n_steps = (i == 0 || isSame(fabs(T[i] - Tc), dT)) ? n_steps_initial : n_steps_thermalize;
-        
+
         for (int j = 0; j < n_steps; j++)
         {
             model.one_step_evolution();
         }
-                    
+
         for (int j = 0; j < n_data_per_temp; j++)
         {
             for (int k = 0; k < n_steps_generation; k++)
@@ -92,11 +92,11 @@ int main()
                 model.save_spin_lattice(file, false, false);
             }
         }
-        
+
         file.close();
-        
-        progress.Next(i);   
+
+        progress.Next(i);
     }
-    
+
     return 0;
 }

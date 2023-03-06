@@ -27,6 +27,11 @@ from accelerate import Accelerator
 from pytorch_fid.inception import InceptionV3
 from pytorch_fid.fid_score import calculate_frechet_distance
 
+from src.data_factory.percolation import generate_percolation_data
+import numpy as np
+from math import log, sqrt
+
+
 #from version import __version__
 
 # constants
@@ -767,38 +772,53 @@ class GaussianDiffusion(nn.Module):
 class Dataset(Dataset):
     def __init__(
         self,
-        folder,
-        image_size,
-        exts = ['jpg', 'jpeg', 'png', 'tiff', 'pt'],
-        augment_horizontal_flip = False,
-        convert_image_to = None
+        data
     ):
         super().__init__()
-        self.folder = folder
-        self.image_size = image_size
-        self.paths = [p for ext in exts for p in Path(f'{folder}').glob(f'**/*.{ext}')]
 
-        maybe_convert_fn = partial(convert_image_to_fn, convert_image_to) if exists(convert_image_to) else nn.Identity()
-
-        self.transform = T.Compose([
-            #T.Lambda(maybe_convert_fn),
-            #T.Resize(image_size),
-            #T.RandomHorizontalFlip() if augment_horizontal_flip else nn.Identity(),
-            #T.CenterCrop(image_size),
-            #T.ToTensor()
-        ])
+        self.data = 0.5 * (data + 1)
+        self.data = self.data.repeat((1, 3, 1, 1))
 
     def __len__(self):
-        return len(self.paths)
+        return self.data.shape[0]
 
     def __getitem__(self, index):
-        path = self.paths[index]
-        im = torch.load(path)
-        #img = Image.open(path)
-        #return self.transform(img)
-        return im
+        return self.data[index]
 
-# trainer class
+def get_loader(
+    image_size: int,
+    dataset_size: int,
+    stat_phys_model: str,
+    statistical_control_parameter: float,
+    batch_sizes: int = 64,
+) -> torch.utils.data.dataloader.DataLoader:
+
+    batch_size = batch_sizes[int(math.log2(image_size / 4))]
+
+    if stat_phys_model == "percolation":
+
+        dataset, _ = generate_percolation_data(
+            dataset_size=dataset_size,
+            lattice_size=image_size,
+            p_list=[statistical_control_parameter],
+            split=False
+        )
+
+    elif stat_phys_model == "ising":
+
+        with open('./data/ising/L={}/T={:.4f}.bin'.format(image_size, statistical_control_parameter), 'rb') as f:
+            dataset = torch.frombuffer(buffer=f.read(), dtype=torch.int8, offset=0).reshape(-1, 1, image_size, image_size)[:dataset_size].type(torch.float32)
+
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=4,
+        pin_memory=True,
+    )
+
+    return loader
+
 
 class Trainer(object):
     def __init__(
@@ -870,22 +890,27 @@ class Trainer(object):
 
         self.train_batch_size = train_batch_size
 
-        #self.ds = Dataset(folder, self.image_size, augment_horizontal_flip = augment_horizontal_flip, convert_image_to = convert_image_to)
-        #dl = DataLoader(self.ds, batch_size = train_batch_size, shuffle = True, pin_memory = True, num_workers = cpu_count())
-#
-        #dl = self.accelerator.prepare(dl)
-        #self.dl = cycle(dl)
-
-        from src.data_factory.percolation import generate_percolation_data
         self.dataset_size = dataset_size
+        #self.data, _ = generate_percolation_data(
+        #    dataset_size=self.dataset_size,
+        #    lattice_size=self.lattice_size,
+        #    p_list=[self.percolation_parameter],
+        #    split=False,
+        #    save_dir=None
+        #)
 
-        self.data, _ = generate_percolation_data(
+        #self.ds = Dataset(self.data)
+        #dl = DataLoader(self.ds, batch_size = train_batch_size, shuffle = True, pin_memory = True, num_workers = cpu_count())
+        dl = get_loader(
+            image_size=self.image_size,
             dataset_size=self.dataset_size,
-            lattice_size=self.lattice_size,
-            p_list=[self.percolation_parameter],
-            split=False,
-            save_dir=None
+            stat_phys_model='ising',
+            statistical_control_parameter=2/log(1 + sqrt(2)),
+            batch_sizes=self.train_batch_size
         )
+
+        dl = self.accelerator.prepare(dl)
+        self.dl = cycle(dl)
 
         # optimizer
 
@@ -976,10 +1001,7 @@ class Trainer(object):
                 total_loss = 0.
 
                 for _ in range(self.gradient_accumulate_every):
-                    #data = next(self.dl).to(device)
-
-                    data = (self.data[torch.randint(low=0, high=self.data.shape[0], size=(self.batch_size,))] + 1) / 2
-                    data = data.repeat((1, 3, 1, 1)).to(device)
+                    data = next(self.dl).to(device)
 
                     with self.accelerator.autocast():
                         loss = self.model(data)
@@ -1011,13 +1033,8 @@ class Trainer(object):
                             all_images_list = list(map(lambda n: self.ema.ema_model.sample(batch_size=n), batches))
 
                         all_images = torch.cat(all_images_list, dim = 0)
-                        #all_images = 0.5 * (torch.sign(2 * all_images[:,0,:,:] - 1) + 1)
-                        all_images = 0.5 * (torch.sign(2 * all_images - 1) + 1)
-                        #all_images = all_images[:,0,:,:].to('cpu', torch.uint8).numpy()
                         import numpy as np
                         np.save(str(self.results_folder / f'sample-{milestone}'), (0.5 * (torch.sign(2 * all_images - 1) + 1)).to('cpu', torch.uint8).numpy())
-
-                        #utils.save_image(all_images, str(self.results_folder / f'sample-{milestone}.png'), nrow = int(math.sqrt(self.num_samples)))
                         self.save(milestone)
 
                         # whether to calculate fid

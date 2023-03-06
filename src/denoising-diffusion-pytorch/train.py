@@ -4,9 +4,9 @@ from datetime import datetime
 import json
 
 args = {
-    'DATASET_SIZE': 5000,
+    'DATASET_SIZE': 15000,
     'IMAGE_SIZE': 32,
-    'BATCH_SIZE': 64,
+    'BATCH_SIZE': 128,
     'PERCOLATION_PARAMETER': 0.5928,
     'NUM_TIMESTEPS': 1000,
     'SAMPLING_TIMESTEPS': 250,
