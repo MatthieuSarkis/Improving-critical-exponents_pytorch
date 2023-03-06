@@ -791,6 +791,7 @@ def get_loader(
     stat_phys_model: str,
     statistical_control_parameter: float,
     batch_sizes: int = 64,
+    num_workers: int = 4,
 ) -> torch.utils.data.dataloader.DataLoader:
 
     batch_size = batch_sizes[int(math.log2(image_size / 4))]
@@ -813,7 +814,7 @@ def get_loader(
         dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=4,
+        num_workers=num_workers,
         pin_memory=True,
     )
 
@@ -906,7 +907,8 @@ class Trainer(object):
             dataset_size=self.dataset_size,
             stat_phys_model='ising',
             statistical_control_parameter=2/log(1 + sqrt(2)),
-            batch_sizes=self.train_batch_size
+            batch_sizes=self.train_batch_size,
+            num_workers=cpu_count()
         )
 
         dl = self.accelerator.prepare(dl)

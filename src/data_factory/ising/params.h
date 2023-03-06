@@ -21,7 +21,7 @@ float T_critical(int L)
     return Tc / (1 + 5 / (4.0 * L));
 }
 
-int L = 64;
+int L = 32;
 int n_steps_initial = 1000;
 int n_steps_thermalize = 100;
 int n_steps_generation = 10;
