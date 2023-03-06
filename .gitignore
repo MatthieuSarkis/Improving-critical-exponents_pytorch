@@ -6,8 +6,9 @@ __pycache__
 *.code-workspace
 data/
 *.pt
+*sample-*
 #saved_models/
-*images/
+#*images/
 *.gif
 *.egg-info/
 *.out
