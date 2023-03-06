@@ -1,31 +1,15 @@
-import torch
-from denoising_diffusion_pytorch import Unet, GaussianDiffusion, Trainer
-from src.data_factory.percolation import generate_percolation_data
+from denoising_diffusion_pytorch import GaussianDiffusion, Unet, Trainer
 import os
 
-IMAGE_SIZE = 16
-DATASET_SIZE = 1024
+DATASET_SIZE = 100
+IMAGE_SIZE = 64
 BATCH_SIZE = 16
-PERCOLATION_PARAMETER = 0.5
+PERCOLATION_PARAMETER = 0.5928
+NUM_TIMESTEPS = 1000
+SAMPLING_TIMESTEPS = 250
 
-X, _ = generate_percolation_data(
-    dataset_size=DATASET_SIZE,
-    lattice_size=IMAGE_SIZE,
-    p_list=[PERCOLATION_PARAMETER],
-    split=False,
-    save_dir=None
-)
-
-X = (X + 1) / 2
-X = X.repeat((1, 3, 1, 1)) # I add fake color channels because I don't find how to use their code with only 1 color channel...
-
-data_folder = './src/denoising-diffusion-pytorch/data'
-results_folder = './src/denoising-diffusion-pytorch/results'
-os.makedirs(name=data_folder, exist_ok=True)
+results_folder = './src/denoising-diffusion-pytorch/ckpt'
 os.makedirs(name=results_folder, exist_ok=True)
-
-for i in range(X.shape[0]):
-    torch.save(obj=X[i], f=os.path.join(data_folder, '{}.pt'.format(i)))
 
 model = Unet(
     dim = 64,
@@ -36,24 +20,22 @@ model = Unet(
 diffusion = GaussianDiffusion(
     model,
     image_size = IMAGE_SIZE,
-    timesteps = 1000,           # number of steps
-    #timesteps = 1,           # number of steps
-    sampling_timesteps = 250,   # number of sampling timesteps (using ddim for faster inference [see citation for ddim paper])
-    #sampling_timesteps = 1,   # number of sampling timesteps (using ddim for faster inference [see citation for ddim paper])
+    timesteps = NUM_TIMESTEPS,           # number of steps
+    sampling_timesteps = SAMPLING_TIMESTEPS ,   # number of sampling timesteps (using ddim for faster inference [see citation for ddim paper])
     loss_type = 'l1'            # L1 or L2
 )
 
 trainer = Trainer(
     diffusion,
-    folder=data_folder,
+    dataset_size=DATASET_SIZE,
+    lattice_size=IMAGE_SIZE,
+    percolation_parameter=PERCOLATION_PARAMETER,
     train_batch_size = BATCH_SIZE,
     augment_horizontal_flip = False,
-    #save_and_sample_every = 1000,
-    save_and_sample_every = 10,
+    save_and_sample_every = 1000,
     results_folder = results_folder,
     train_lr = 8e-5,
-    #train_num_steps = 700000,         # total training steps
-    train_num_steps = 1000,         # total training steps
+    train_num_steps = 100000,         # total training steps
     gradient_accumulate_every = 2,    # gradient accumulation steps
     ema_decay = 0.995,                # exponential moving average decay
     amp = True,                       # turn on mixed precision
