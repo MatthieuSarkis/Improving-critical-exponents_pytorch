@@ -790,11 +790,9 @@ def get_loader(
     dataset_size: int,
     stat_phys_model: str,
     statistical_control_parameter: float,
-    batch_sizes: int = 64,
+    batch_size: int = 64,
     num_workers: int = 4,
 ) -> torch.utils.data.dataloader.DataLoader:
-
-    batch_size = batch_sizes[int(math.log2(image_size / 4))]
 
     if stat_phys_model == "percolation":
 
@@ -809,6 +807,9 @@ def get_loader(
 
         with open('./data/ising/L={}/T={:.4f}.bin'.format(image_size, statistical_control_parameter), 'rb') as f:
             dataset = torch.frombuffer(buffer=f.read(), dtype=torch.int8, offset=0).reshape(-1, 1, image_size, image_size)[:dataset_size].type(torch.float32)
+
+    dataset = 0.5 * (dataset + 1)
+    dataset = dataset.repeat((1, 3, 1, 1))
 
     loader = DataLoader(
         dataset,
@@ -829,7 +830,8 @@ class Trainer(object):
         dataset_size = 128,
         train_batch_size = 16,
         lattice_size = 64,
-        percolation_parameter = 0.5928,
+        statistical_model = 'ising',
+        statistical_parameter = 0.5928,
         gradient_accumulate_every = 1,
         augment_horizontal_flip = True,
         train_lr = 1e-4,
@@ -850,7 +852,8 @@ class Trainer(object):
         super().__init__()
 
         self.lattice_size = lattice_size
-        self.percolation_parameter = percolation_parameter
+        self.statistical_parameter = statistical_parameter
+        self.statistical_model = statistical_model
 
         # accelerator
 
@@ -905,9 +908,9 @@ class Trainer(object):
         dl = get_loader(
             image_size=self.image_size,
             dataset_size=self.dataset_size,
-            stat_phys_model='ising',
-            statistical_control_parameter=2/log(1 + sqrt(2)),
-            batch_sizes=self.train_batch_size,
+            stat_phys_model=self.statistical_model,
+            statistical_control_parameter=self.statistical_parameter,
+            batch_size=self.train_batch_size,
             num_workers=cpu_count()
         )
 

@@ -8,9 +8,9 @@
 #SBATCH --ntasks-per-node=8
 #SBATCH --mail-type=all
 #SBATCH --mem-per-cpu=32GB
-#SBATCH --job-name="diffusion"
-#SBATCH --output="OUTPUT_factory.out" # job standard output file (%j replaced by job id)
-#SBATCH --error="ERROR_factory.out" # job standard error file (%j replaced by job id)
+#SBATCH --job-name="diffusion_ising"
+#SBATCH --output="OUTPUT_factory_ising.out" # job standard output file (%j replaced by job id)
+#SBATCH --error="ERROR_factory_ising.out" # job standard error file (%j replaced by job id)
 
 ulimit -s unlimited
 export OMP_NUM_THREADS=1

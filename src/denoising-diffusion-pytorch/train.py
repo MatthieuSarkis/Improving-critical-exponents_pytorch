@@ -2,21 +2,25 @@ from denoising_diffusion_pytorch import GaussianDiffusion, Unet, Trainer
 import os
 from datetime import datetime
 import json
+from math import log, sqrt
 
 args = {
     'DATASET_SIZE': 15000,
     'IMAGE_SIZE': 32,
     'BATCH_SIZE': 128,
-    'PERCOLATION_PARAMETER': 0.5928,
+    #'STATISTICAL_MODEL': 'percolation',
+    'STATISTICAL_MODEL': 'ising',
+    #'STATISTICAL_PARAMETER': 0.5928,
+    'STATISTICAL_PARAMETER': 2/log(1 + sqrt(2)),
     'NUM_TIMESTEPS': 1000,
     'SAMPLING_TIMESTEPS': 250,
-    'TRAIN_NUM_STEPS': 10000,
-    'SAVE_AND_SAMPLE_EVERY': 50,
+    'TRAIN_NUM_STEPS': 50000,
+    'SAVE_AND_SAMPLE_EVERY': 500,
     'TRAIN_LR': 8e-5,
     'EMA_DECAY': 0.995
 }
 
-results_folder = os.path.join('./src/denoising-diffusion-pytorch/logs/', datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
+results_folder = os.path.join('./src/denoising-diffusion-pytorch/logs/', args['STATISTICAL_MODEL'], datetime.now().strftime("%Y.%m.%d.%H.%M.%S"))
 os.makedirs(name=os.path.join(results_folder, 'ckpt'), exist_ok=True)
 
 with open(os.path.join(results_folder, 'args.json'), 'w') as f:
@@ -40,7 +44,8 @@ trainer = Trainer(
     diffusion,
     dataset_size=args['DATASET_SIZE'],
     lattice_size=args['IMAGE_SIZE'],
-    percolation_parameter=args['PERCOLATION_PARAMETER'],
+    statistical_model=args['STATISTICAL_MODEL'],
+    statistical_parameter=args['STATISTICAL_PARAMETER'],
     train_batch_size = args['BATCH_SIZE'],
     augment_horizontal_flip = False,
     save_and_sample_every = args['SAVE_AND_SAMPLE_EVERY'],
