@@ -5,3 +5,8 @@ matplotlib
 jupyter
 tqdm
 tensorboard
+accelerate
+einops
+ema-pytorch
+pillow
+pytorch-fid
