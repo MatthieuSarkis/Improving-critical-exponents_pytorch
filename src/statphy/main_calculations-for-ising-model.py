@@ -14,7 +14,8 @@
 ###################### INITIAL PARAMETERS, JUST CHANGE THIS PART #####################
 p = 2.2692
 L = 32
-INPUT_FAKE_FILE = f'/home/uqedasht/Desktop/Sims/denoising-diffusion-pytorch/logs/ising/2023.03.06.23.10.08/generated_images/L={L}_p={p}.npy'
+fake_imgs_file = f'./generated_data/fake-denoising-diffusion-pytorch/ising/2023.03.06.23.10.08//L={L}_p={p}.npy'
+real_imgs_file = f'./generated_data/real/ising//L={L}_p={p}.bin'
 max_n_samples = 5000
 OUPUT_DIR_figs = 'output_files-ising/fig'
 OUPUT_DIR_data = 'output_files-ising/txt'
@@ -38,6 +39,7 @@ from modules import gen_class
 ######################## USEFULL FUNCTIONS ######################
 
 def do_all_statistics_jobs(img_gen, img_shape, suffix='real'):
+
     L = img_shape[0]
     n_samples = img_gen.len()
     # get the mesures related to the configurations
@@ -79,46 +81,57 @@ def do_all_statistics_jobs(img_gen, img_shape, suffix='real'):
 ######################## MAIN FUNCTION ######################
 if __name__ == '__main__':
 
-    print(40*'-')
+    print(50*'-')
 
-    if not os.path.exists(INPUT_FAKE_FILE):
-        print(f'File {INPUT_FAKE_FILE} does not exist!')
-        exit(1)
+    fakedata, realdata = None, None
+
+    if not os.path.exists(fake_imgs_file):
+        print(f'File {fake_imgs_file} does not exist!')
+    else:
+        fakedata = np.load(fake_imgs_file)
+        print(f'fakedata.shape={fakedata.shape}')
+        print(fakedata[0])
+        print(fakedata[0].min(), fakedata[0].max())
+
+    if not os.path.exists(real_imgs_file):
+        print(f'File {real_imgs_file} does not exist!')
+    else:
+        realdata = np.fromfile(real_imgs_file, dtype=np.int8) # shape=n*L*L
+        realdata = realdata.reshape((-1, L, L))
+        print(f'realdata.shape={realdata.shape}')
+        print(realdata[0])
+        sys.exit()
+
    
     os.makedirs(OUPUT_DIR_figs, exist_ok=True)
     os.makedirs(OUPUT_DIR_data, exist_ok=True)
-    print (f'# L={L} p={p} max_n_samples={max_n_samples}')
-    print (f'# out_dir_figs={OUPUT_DIR_figs}, out_dir_data={OUPUT_DIR_data}')
-    print(40*'-')
-
-
-    ### put all input images in a list
-    data = np.load(INPUT_FAKE_FILE)
-
     
+    print(50*'-')
+ 
 
 
-
-    # CLUSTERING THE TEST IMAGES
+    #### CLUSTERING THE TEST IMAGES ###
     if clustering_sample_images:
         print ('Clustering some of real/fake images ...')
         n_samples = 5
-        imgs = data[:n_samples]
-        plt.figure()
-        labels, _ = geometric_measure.clustering(imgs, lower_size=5)
-        plot_func.plot_imgs_labels(plt, imgs, labels, outfilename=f'{OUPUT_DIR_figs}/imgs_real(L={L}).pdf')
-        plt.close()
 
-
-        if len(filelist_fake) > 0:
-            imgs = [np.load(path) for path in filelist_fake[:n_samples]]
+        if fakedata is not None:
+            imgs = fakedata[:n_samples]
             plt.figure()
             labels, _ = geometric_measure.clustering(imgs, lower_size=5)
             plot_func.plot_imgs_labels(plt, imgs, labels, outfilename=f'{OUPUT_DIR_figs}/imgs_fake(L={L}).pdf')
             plt.close()
 
+        if realdata is not None:
+            imgs = realdata[:n_samples]
+            plt.figure()
+            labels, _ = geometric_measure.clustering(imgs, lower_size=5)
+            plot_func.plot_imgs_labels(plt, imgs, labels, outfilename=f'{OUPUT_DIR_figs}/imgs_real-L={L}_p={p}.pdf')
+            plt.close()
 
-    # DO STATISTICS
+
+
+    #### DO STATISTICS ###
     if calc_stat_of_real_imgs:
         print ('Doing calculations on the real images ...')
 

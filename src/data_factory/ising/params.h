@@ -17,17 +17,17 @@
 
 float T_critical(int L)
 {
-    float Tc = 2 / log(1 + sqrt(2));
-    return Tc / (1 + 5 / (4.0 * L));
+    float Tc = 2. / log(1 + sqrt(2.));
+    return Tc;  /// (1 + 5 / (4.0 * L));
 }
 
 int L = 32;
-int n_steps_initial = 1000;
-int n_steps_thermalize = 100;
-int n_steps_generation = 10;
+int n_steps_initial = 5000;
+int n_steps_thermalize = 1000;
+int n_steps_generation = 100;
 int n_data_per_temp = 10000;
-float T_min = 1.8;
-float T_max = 3.0;
+float T_min = 2.2692;
+float T_max = 2.2692;
 float dT = 0.010;
 bool binary = true;
 

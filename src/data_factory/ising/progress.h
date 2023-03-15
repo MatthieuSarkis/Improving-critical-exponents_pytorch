@@ -87,8 +87,9 @@ void Progress::Next(const int idx, std::ostream& stm)
 
 void Progress::PrintTimePercentage(const int smp, std::ostream& stm)
 {
-    stm << "\n";
+    stm << "\r";
     stm << curr << "%";
+    stm.flush();
     prev = curr;
 }
 

@@ -56,7 +56,7 @@ int main()
     model.initialize_spins();
     int n_steps = 0;
     
-    Progress progress((int)T.size());
+    
     
     for (int i = 0; i < T.size(); i++)
     {
@@ -64,7 +64,7 @@ int main()
         stringstream ss;
         ss.setf(ios::fixed);
         ss << setprecision(4);
-        ss << "L=" << L << "_p=" << T[i] << ".bin";
+        ss << "L=" << L << "_p=" << T[i];
         file_name = ss.str();
         
         ofstream file((dir_name + "/" + file_name + ".bin").c_str(), ios::out | ios::binary);
@@ -72,12 +72,22 @@ int main()
         n_steps = (i == 0 || isSame(fabs(T[i] - Tc), dT)) ? n_steps_initial : n_steps_thermalize;
 
         cout << "L=" << L << " T=" << T[i] << endl;
-        
+        cout << "n_steps_initial=" << n_steps << " n_steps_generation=" << n_steps_generation 
+             << " n_data_per_temp=" << n_data_per_temp << endl;
+
+        cout << "Equilibrating ..." << endl;
+
+        Progress progress(n_steps);
+
         for (int j = 0; j < n_steps; j++)
         {
             model.one_step_evolution();
+            progress.Next(j); 
         }
-                    
+
+        cout << "Sampling ..." << endl;
+        progress.Reset(n_data_per_temp);     
+
         for (int j = 0; j < n_data_per_temp; j++)
         {
             for (int k = 0; k < n_steps_generation; k++)
@@ -93,11 +103,13 @@ int main()
             {
                 model.save_spin_lattice(file, false, false);
             }
+
+            progress.Next(j); 
         }
         
         file.close();
         
-        progress.Next(i);   
+          
     }
     
     return 0;
