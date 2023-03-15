@@ -19,11 +19,9 @@ real_imgs_file = f'./generated_data/real/ising//L={L}_p={p}.bin'
 max_n_samples = 5000
 OUPUT_DIR_figs = 'output_files-ising/fig'
 OUPUT_DIR_data = 'output_files-ising/txt'
-read_real_images = False
 
 clustering_sample_images = True
-calc_stat_of_real_imgs = False
-calc_stat_of_fake_imgs = False
+calc_statistics = True
 
 ######################## IMPORT MODULES #########################
 import os
@@ -42,13 +40,20 @@ def do_all_statistics_jobs(img_gen, img_shape, suffix='real'):
 
     L = img_shape[0]
     n_samples = img_gen.len()
+
     # get the mesures related to the configurations
     measure = geometric_measure.get_measure(img_gen, img_shape=img_shape)
+
+
+
     # get the statistics of measures
     stat = geometric_measure.measure_statistics(measure, nbins_for_ns=43)
 
-    # part ns
 
+
+    # part 
+
+    # part ns
     datainfo = f'p={p},L={L},N={n_samples}'
 
     ns = stat['ns']
@@ -59,7 +64,7 @@ def do_all_statistics_jobs(img_gen, img_shape, suffix='real'):
     plt.figure()
     plot_func.logplotXY(plt, x, y, 
                     sim_st=f'$L={L}$', xlabel='$s$', ylabel='$n(s)$', 
-                    xlow = 1e1, xup = 1e2, slope_st = '\\tau', show_legend=True, 
+                    xlow = 1.1e1, xup = 2e2, slope_st = '\\tau', show_legend=True, 
                     outfilename = f'{OUPUT_DIR_figs}/ns_{suffix}({datainfo}).pdf',)
     plt.close()
     
@@ -78,10 +83,13 @@ def do_all_statistics_jobs(img_gen, img_shape, suffix='real'):
                     outfilename=f'{OUPUT_DIR_figs}/gr_{suffix}({datainfo}).pdf')
     plt.close()
 
+
+
+
+
 ######################## MAIN FUNCTION ######################
 if __name__ == '__main__':
 
-    print(50*'-')
 
     fakedata, realdata = None, None
 
@@ -90,8 +98,7 @@ if __name__ == '__main__':
     else:
         fakedata = np.load(fake_imgs_file)
         print(f'fakedata.shape={fakedata.shape}')
-        print(fakedata[0])
-        print(fakedata[0].min(), fakedata[0].max())
+        #print(fakedata[0].min(), fakedata[0].max())
 
     if not os.path.exists(real_imgs_file):
         print(f'File {real_imgs_file} does not exist!')
@@ -99,8 +106,6 @@ if __name__ == '__main__':
         realdata = np.fromfile(real_imgs_file, dtype=np.int8) # shape=n*L*L
         realdata = realdata.reshape((-1, L, L))
         print(f'realdata.shape={realdata.shape}')
-        print(realdata[0])
-        sys.exit()
 
    
     os.makedirs(OUPUT_DIR_figs, exist_ok=True)
@@ -110,7 +115,7 @@ if __name__ == '__main__':
  
 
 
-    #### CLUSTERING THE TEST IMAGES ###
+    #### CLUSTERING SOME OF IMAGES ###
     if clustering_sample_images:
         print ('Clustering some of real/fake images ...')
         n_samples = 5
@@ -132,21 +137,22 @@ if __name__ == '__main__':
 
 
     #### DO STATISTICS ###
-    if calc_stat_of_real_imgs:
-        print ('Doing calculations on the real images ...')
+    if calc_statistics:
+        
+        if realdata is not None:
+            print ('Calculating the statsitics of real images ...')
 
-        if read_real_images_from_dir and filelist_real and len(filelist_real) > 0:
-            img_gen = gen_class.GenUsingFile(filelist_real, max_n_samples)
-        else:
-            np.random.seed(72)
-            img_gen = gen_class.GenUsingFunc(make_perc_func(L, p), max_n_samples)
-        do_all_statistics_jobs(img_gen, img_shape=(L,L), suffix='real')
+            img_gen = gen_class.GenUsingList(realdata, max_n_samples)
+            do_all_statistics_jobs(img_gen, img_shape=(L,L), suffix='real')
+            
 
-    if calc_stat_of_fake_imgs:
-        if len(filelist_fake) > 0:
-            print ('Doing calculations on the fake images ...')
-            img_gen = gen_class.GenUsingFile(filelist_fake, max_n_samples)
-            do_all_statistics_jobs(img_gen, img_shape=(L,L), suffix='fake')
+    if calc_statistics and fakedata is not None:
+        pass
 
 
+        # if fakedata is not None:
+            # print ('Calculating the statsitics of fake images ...')
+
+            # img_gen = gen_class.GenUsingList(realdata, max_n_samples)
+            # do_all_statistics_jobs(img_gen, img_shape=(L,L), suffix='fake')
 

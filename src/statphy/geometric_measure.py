@@ -13,16 +13,20 @@
 """ Computing the geometric measures of clusters """
 
 import numpy as np
-from scipy.ndimage import measurements
+#from scipy.ndimage import measurements
+import scipy.ndimage as imgprocessing
 import itertools
 from numba import jit
 
 from modules import gen_class
 from modules import histogram
 import perc_corr
+import sys
+
+
 
 def clustering(imgs, 
-               target_color = 1, max_num = -1, 
+               target_spin = 1, max_num = -1, 
                change_type = 'shuffle', 
                lower_size = -1):
     """
@@ -31,7 +35,7 @@ def clustering(imgs,
     labels, nums = [], []
     i = 0
     for img in imgs:
-        mat = np.where(img == target_color, 1, 0)
+        mat = np.where(img == target_spin, 1, 0)
         label, numbers = measurements.label(mat)
 
         if change_type == 'shuffle':
@@ -53,7 +57,7 @@ def clustering(imgs,
 
 def get_measure(img_gen : gen_class, 
                 img_shape,
-                target_color = 1,
+                target_spin = 1,
                 show_progress = True,
                ):
     """
@@ -64,7 +68,7 @@ def get_measure(img_gen : gen_class,
     ----------
     img_gen : generator of images
         images are with integer values.
-    target_color : int, default=1
+    target_spin : int, default=1
         the target value to be considered for clustering
     show_progress : bool, default=true
         If ture, then a progress bar is shown.
@@ -99,34 +103,46 @@ def get_measure(img_gen : gen_class,
     else:
         myrange = range(N)
 
-    all_mass = np.array([], dtype=int) 
-    all_Rs2 = np.array([], dtype=float)
-    all_chi = np.zeros(N, dtype=float)
-    all_big = np.zeros(N, dtype=int)
-    all_M = np.zeros(N, dtype=int)
-    all_xi = np.zeros(N, dtype=float)
+    all_mass = np.array([], dtype=np.int32) 
+    all_Rs2 = np.array([], dtype=np.float64)
+    all_chi = np.zeros(N, dtype=np.float64)
+    all_big = np.zeros(N, dtype=np.int32)
+    all_M = np.zeros(N, dtype=np.int32) # biggest cluster size
+    all_xi = np.zeros(N, dtype=np.float64)
 
     # varibale for gr, the correlation function
     
     L = max(img_shape)
     max_r = 2 * L
-    gr_accum = np.zeros(max_r, float)
+    gr_accum = np.zeros(max_r, np.float64)
     
     count_samples = 0
+
     for ii in myrange:
         img = next(img_gen)
+
         # generate an array of target color
-        mat = np.where(img == target_color, 1, 0)
+        mat = np.where(img == target_spin, 1, 0)
 
         # finding the label of each cluster
-        label, _ = measurements.label(mat)
-        label = label - 1 # note that for better calculation, we shift labels' values
+        label, _ = imgprocessing.label(mat)
 
-        # a range array start from 1 to max(label); note that index zero is not our concern
+        # we shift labels' values.
+        # so the negative labels (that corresponds to non-intrested spins in mat) are not considered.
+        label = label - 1 
+
+
+        print(label+1)
+
+        # an array [0, max(label)];
         mlabel_list = np.arange(label.max()+1)
 
-        # mass(size) of each cluster;
-        mass = measurements.sum(mat, label, index=mlabel_list).astype(int)
+        # mass/size of each cluster; clusters' index start from zero. negaitive lables are not considered.
+        mass = imgprocessing.sum(mat, label, index=mlabel_list).astype(np.int32)
+
+        print(mass)
+
+           
         all_mass = np.append(all_mass, mass)   
 
         # biggest cluster
@@ -134,10 +150,11 @@ def get_measure(img_gen : gen_class,
         all_big[ii] = mass[indx_big]  # np.max(mass)
     
         # center of mass of each cluster
-        cm = measurements.center_of_mass(mat, label, index=mlabel_list)
+        cm = imgprocessing.center_of_mass(mat, label, index=mlabel_list)
+
        
         # calculate the gyration radius for each cluster
-        rs2 = np.zeros(len(mlabel_list), dtype=float) 
+        rs2 = np.zeros(len(mlabel_list), dtype=np.float64) 
         for i, j in itertools.product(range(img_shape[0]), range(img_shape[1])):
             indx = label[i, j] # the label at position (i, j)
             if indx >= 0:
@@ -146,6 +163,8 @@ def get_measure(img_gen : gen_class,
                 rs2[indx] = rs2[indx] + dr2
         rs2 = rs2 / mass 
         all_Rs2 = np.append(all_Rs2, rs2)
+
+
 
         # find the spanning cluster along x axis
         perc_x = np.intersect1d(label[0,:], label[-1,:])
@@ -167,13 +186,16 @@ def get_measure(img_gen : gen_class,
             all_chi[ii] = msum2 / msum                          #  chi = [sum s^2] / [sum s]
             all_xi[ii] = np.sum(2 * rs2 * mass * mass) / msum2  #  xi = [sum 2*Rs^2 * s^2] / [sum s^2]
         
+
         # calcualte gr
-        if indx_perc < 0:
-            gr = perc_corr.corr_func(label, max_r=max_r, n_trials=100*L**2)
-        else:
-            gr = perc_corr.corr_func(label, max_r=max_r, n_trials=100*L**2)
-            #gr = perc_corr.corr_func_ignore_a_clus(label, max_r=max_r, n_trials=200*L**2, indx_skip=indx_perc)
+        gr = perc_corr.corr_func(label, max_r=max_r, n_trials=100*L**2)
+        # if indx_perc < 0:
+        #     gr = perc_corr.corr_func(label, max_r=max_r, n_trials=100*L**2)
+        # else:
+        #     #gr = perc_corr.corr_func(label, max_r=max_r, n_trials=100*L**2)
+        #     gr = perc_corr.corr_func_ignore_a_clus(label, max_r=max_r, n_trials=200*L**2, indx_skip=indx_perc)
         gr_accum = gr_accum + gr
+
 
         count_samples += 1
     
@@ -196,8 +218,8 @@ def get_measure(img_gen : gen_class,
     return measure
 
 
-def cluster_number_density(all_mass, img_size, N, 
-                           nbins=None, **kwargs):
+def cluster_number_density(all_mass : np.ndarray, img_size: int, N: int, 
+                           nbins: int=None, **kwargs):
     """
     Calculation of cluster number density n(s);
     n(s) = N(s) / (img_size * N), 
@@ -226,7 +248,7 @@ def cluster_number_density(all_mass, img_size, N,
 
     # the cluster number density
     # Note that ns at some indexes may has the zero value
-    ns = Ns.astype(float) / (img_size * N)
+    ns = Ns.astype(np.float64) / (img_size * N)
 
     if nbins is None:
         return ns
@@ -234,46 +256,89 @@ def cluster_number_density(all_mass, img_size, N,
         s = np.arange(len(ns))
         # we dont need the ns at index zero
         return histogram.hist(s[1:], ns[1:], nbins=nbins, **kwargs) 
+
+
+
+
+def bining_xy(X: np.ndarray, Y: np.ndarray, nbins: int):
+    '''
+    It divides xrange to nbins and calculate the value of y_avg and x_avg for each bin.
+    '''
+    xmax, xmin = np.max(X), np.min(Y)
+    dx = (xmax - xmin) / nbins
+
+    print(X, Y)
+
+    Xn, Yn, Cn = np.zeros(nbins), np.zeros(nbins), np.zeros(nbins, dtype=np.int64)
+
+    for x, y in zip(X, Y):
+        indx = int((x - xmin)/dx)
+        if indx >= nbins:
+            indx = nbins - 1
+        Xn[indx] += x
+        Yn[indx] += y
+        Cn[indx] += 1
+    
+    nonzero_indxs = (Cn > 0)
+    Cn = Cn[nonzero_indxs]
+    Xn = Xn[nonzero_indxs] / Cn
+    Yn = Yn[nonzero_indxs] / Cn
+
+    print(Xn, Yn, Cn)
+    sys.exit()
+
+    return (Xn, Yn, Cn)
+    
     
 
-def measure_statistics(measure,
-                       nbins_for_ns = 53):
+
+def measure_statistics(
+        measure,
+        nbins_for_ns = 53,
+        nbins_for_m_gr = 53,
+):
     """
     This calculates the statistics of measures
 
     Parameters
     ----------
-    measure : dictionay
+    measure : dictionary
         measure for clusters.
     nbins_for_ns : int
         number of bins for calculation of cluster number density
 
     Returns
     ----------
-    stat : dictionary
+    stats : dictionary
     """
 
     N = measure['N']
     img_size = np.product(measure['shape'])
 
-    stat = {}
+    stats = {}
     ns = cluster_number_density(measure['all_mass'], 
                                 img_size = img_size, 
                                 N = N, 
                                 nbins = nbins_for_ns
                                )
-    stat['ns'] = ns
-    stat['chi'] = np.average(measure['all_chi'])
-    stat['xi'] = np.average(measure['all_xi'])
-    stat['Pinf'] = np.average(measure['all_big']) / img_size
-    stat['M'] = np.average(measure['all_M'])
-    stat['Ps'] = np.average(measure['all_M'] > 0)
+    
+    stats['m_rg'] = bining_xy(stats['all_mass'], np.sqrt(stats['all_Rs2']), nbins=nbins_for_m_gr)
+
+    stats['ns'] = ns
+    stats['chi'] = np.average(measure['all_chi'])
+    stats['xi'] = np.average(measure['all_xi'])
+    stats['Pinf'] = np.average(measure['all_big']) / img_size
+
+    # M is the size of percolated cluster; 
+    # so if M=0, it means we do not have any percolated clusteer
+    stats['M'] = np.average(measure['all_M'])
+    stats['Ps'] = np.average((measure['all_M'] > 0))  
 
     gr = measure['row_gr']
-    r = np.arange(gr.size, dtype=int)
+    r = np.arange(gr.size, dtype=np.int32)
     indx = np.nonzero(gr)
-    stat['gr'] = (r[indx], gr[indx])
-    return stat
+    stats['gr'] = (r[indx], gr[indx])
+    return stats
 
 
 
@@ -292,8 +357,12 @@ if __name__ == '__main__':
     img_gen = gen_class.GenUsingList([img1, img2], 2)
 
     # get the mesures related to the configurations
-    measure = get_measure(img_gen, img_shape=img1.shape)
-    # get the statistics of measures
-    stat = measure_statistics(measure)
+    measure = get_measure(img_gen, img_shape=img1.shape, show_progress=False)
 
-    print(stat['gr'])
+    print(measure)
+
+
+    # get the statistics of measures
+    #stats = measure_statistics(measure)
+
+    
