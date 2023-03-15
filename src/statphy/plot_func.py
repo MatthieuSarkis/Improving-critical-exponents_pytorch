@@ -58,7 +58,7 @@ def logplotXY(plt, x, y, xlabel=None, ylabel=None, title=None, outfilename=None,
         yn = c * xn ** expo
         expo_usign = expo if expo > 0 else -expo
         plt.loglog(xn, yn, color=pl[0].get_color(),
-                label = fr'${slope_st}={expo_usign:.{precision}f} \pm {expo_err:.{precision}f}$'  )
+                label = f'${slope_st}={expo_usign:.{precision}f} \\pm {expo_err:.{precision}f}$'  )
     
     if show_legend:
         plt.legend(frameon=False)
@@ -70,3 +70,57 @@ def logplotXY(plt, x, y, xlabel=None, ylabel=None, title=None, outfilename=None,
         plt.ylabel(ylabel, fontsize=16)
     if outfilename:
         plt.savefig(outfilename, pad_inches=0.01, bbox_inches='tight')
+
+
+def plot_stats(plt, stats: dict, odir_figs: str, filenamesuffix: str, curve_label: str ):
+
+    # part plot ns
+    ns = stats['ns']
+    x, y, dx = ns['bin_centers'], ns['hist'], ns['bin_sizes']
+
+    # with open(f'{odir}/ns_{filenamesuffix}.dat', 'w') as file:
+    #     for z in zip(x, y, dx):
+    #         file.write(f'{z[0]}\t{z[1]}\t{z[2]}\n')
+
+    plt.figure()
+    logplotXY(plt, x, y, 
+              sim_st=curve_label, xlabel='$s$', ylabel='$n(s)$',  
+              xlow = 1.1e1, xup = 2e2, slope_st = '\\tau', show_legend=True, 
+              outfilename = f'{odir_figs}/ns{filenamesuffix}.pdf',)
+    plt.close()
+    
+
+
+    # part plot gr
+    x, y = stats['r,gr'] # r, gr
+
+    plt.figure()
+    logplotXY(plt, x, y, 
+              sim_st=curve_label, xlabel='$r$', ylabel='$g(r)$', 
+              scale_xy_logplot= 1.05, 
+              show_slope=True, xlow=1, xup=4, slope_st='\\eta' , 
+              precision=3, 
+              marker='.', markersize=None, show_legend=True,  
+              outfilename=f'{odir_figs}/gr{filenamesuffix}.pdf')
+    plt.close()
+
+
+
+
+    # part plot gr
+    x, y = stats['rg,m'] 
+
+    plt.figure()
+    logplotXY(plt, x, y, 
+              sim_st=curve_label, xlabel='$r_g$', ylabel='$m$', 
+              scale_xy_logplot= 1, 
+              show_slope=True, xlow=1, xup=4, slope_st='d_f' , 
+              precision=3, 
+              marker='.', markersize=None, show_legend=True,  
+              outfilename=f'{odir_figs}/rg_m{filenamesuffix}.pdf')
+    plt.close()
+
+
+
+
+

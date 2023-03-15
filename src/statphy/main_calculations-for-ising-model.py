@@ -14,77 +14,40 @@
 ###################### INITIAL PARAMETERS, JUST CHANGE THIS PART #####################
 p = 2.2692
 L = 32
-fake_imgs_file = f'./generated_data/fake-denoising-diffusion-pytorch/ising/2023.03.06.23.10.08//L={L}_p={p}.npy'
-real_imgs_file = f'./generated_data/real/ising//L={L}_p={p}.bin'
+fake_imgs_file = f'./generated_data/fake-denoising-diffusion-pytorch/ising/2023.03.06.23.10.08/L={L}_p={p}.npy'
+real_imgs_file = f'./generated_data/real/ising/L={L}_p={p}.bin'
 max_n_samples = 5000
-OUPUT_DIR_figs = 'output_files-ising/fig'
-OUPUT_DIR_data = 'output_files-ising/txt'
+odir_figs = 'output_files-ising/fig'
+odir_data = 'output_files-ising/txt'
 
 clustering_sample_images = True
 calc_statistics = True
 
 ######################## IMPORT MODULES #########################
 import os
-import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import geometric_measure
 import plot_func
-import sys
 from modules import gen_class
 
 
 ######################## USEFULL FUNCTIONS ######################
 
-def do_all_statistics_jobs(img_gen, img_shape, suffix='real'):
+def do_all_jobs(img_gen, suffix='real'):
 
-    L = img_shape[0]
-    n_samples = img_gen.len()
-
-    # get the mesures related to the configurations
-    measure = geometric_measure.get_measure(img_gen, img_shape=img_shape)
-
+    n_samples = len(img_gen)
 
 
     # get the statistics of measures
-    stat = geometric_measure.measure_statistics(measure, nbins_for_ns=43)
+    measure_obj = geometric_measure.Measure()
+
+    history = measure_obj.calc_history(img_gen, (L,L), 1, True)
+    stats = measure_obj.get_stats(nbins_for_ns=33, nbins_for_m_gr=33)
 
 
-
-    # part 
-
-    # part ns
-    datainfo = f'p={p},L={L},N={n_samples}'
-
-    ns = stat['ns']
-    x, y, dx = ns['bin_centers'], ns['hist'], ns['bin_sizes']
-    with open(f'{OUPUT_DIR_data}/ns_{suffix}({datainfo}).dat', 'w') as file:
-        for z in zip(x, y, dx):
-            file.write(f'{z[0]}\t{z[1]}\t{z[2]}\n')
-    plt.figure()
-    plot_func.logplotXY(plt, x, y, 
-                    sim_st=f'$L={L}$', xlabel='$s$', ylabel='$n(s)$', 
-                    xlow = 1.1e1, xup = 2e2, slope_st = '\\tau', show_legend=True, 
-                    outfilename = f'{OUPUT_DIR_figs}/ns_{suffix}({datainfo}).pdf',)
-    plt.close()
-    
-    # part gr
-    x, y = stat['gr'] # r, gr
-    with open(f'{OUPUT_DIR_data}/gr_{suffix}({datainfo}).dat', 'w') as file:
-        for z in zip(x, y):
-            file.write(f'{z[0]}\t{z[1]}\n')
-    plt.figure()
-    plot_func.logplotXY(plt, x, y, 
-                    sim_st=f'$L={L}$', xlabel='$r$', ylabel='$g(r)$',
-                    scale_xy_logplot= 1.05,
-                    show_slope=True, xlow=1, xup=4, slope_st='\\eta' ,
-                    precision=3,
-                    marker='.', markersize=None, show_legend=True, 
-                    outfilename=f'{OUPUT_DIR_figs}/gr_{suffix}({datainfo}).pdf')
-    plt.close()
-
-
-
+    filenamesuffix = f'(L={L},p={p},n={n_samples})--{suffix}'
+    plot_func.plot_stats(plt, stats, odir_figs, filenamesuffix, f'$L={L}$' )
 
 
 ######################## MAIN FUNCTION ######################
@@ -108,8 +71,8 @@ if __name__ == '__main__':
         print(f'realdata.shape={realdata.shape}')
 
    
-    os.makedirs(OUPUT_DIR_figs, exist_ok=True)
-    os.makedirs(OUPUT_DIR_data, exist_ok=True)
+    os.makedirs(odir_figs, exist_ok=True)
+    os.makedirs(odir_data, exist_ok=True)
     
     print(50*'-')
  
@@ -124,14 +87,14 @@ if __name__ == '__main__':
             imgs = fakedata[:n_samples]
             plt.figure()
             labels, _ = geometric_measure.clustering(imgs, lower_size=5)
-            plot_func.plot_imgs_labels(plt, imgs, labels, outfilename=f'{OUPUT_DIR_figs}/imgs_fake(L={L}).pdf')
+            plot_func.plot_imgs_labels(plt, imgs, labels, outfilename=f'{odir_figs}/imgs_fake(L={L}).pdf')
             plt.close()
 
         if realdata is not None:
             imgs = realdata[:n_samples]
             plt.figure()
             labels, _ = geometric_measure.clustering(imgs, lower_size=5)
-            plot_func.plot_imgs_labels(plt, imgs, labels, outfilename=f'{OUPUT_DIR_figs}/imgs_real-L={L}_p={p}.pdf')
+            plot_func.plot_imgs_labels(plt, imgs, labels, outfilename=f'{odir_figs}/imgs_real-L={L}_p={p}.pdf')
             plt.close()
 
 
@@ -143,7 +106,7 @@ if __name__ == '__main__':
             print ('Calculating the statsitics of real images ...')
 
             img_gen = gen_class.GenUsingList(realdata, max_n_samples)
-            do_all_statistics_jobs(img_gen, img_shape=(L,L), suffix='real')
+            do_all_jobs(img_gen, suffix='real')
             
 
     if calc_statistics and fakedata is not None:
@@ -154,5 +117,5 @@ if __name__ == '__main__':
             # print ('Calculating the statsitics of fake images ...')
 
             # img_gen = gen_class.GenUsingList(realdata, max_n_samples)
-            # do_all_statistics_jobs(img_gen, img_shape=(L,L), suffix='fake')
+            # do_all_statistics_jobs(img_gen, suffix='fake')
 

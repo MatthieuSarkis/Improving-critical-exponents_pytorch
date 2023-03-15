@@ -26,8 +26,8 @@ int n_steps_initial = 5000;
 int n_steps_thermalize = 1000;
 int n_steps_generation = 100;
 int n_data_per_temp = 10000;
-float T_min = 2.2692;
-float T_max = 2.2692;
+float T_min = 1.8;
+float T_max = 3;
 float dT = 0.010;
 bool binary = true;
 

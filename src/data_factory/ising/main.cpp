@@ -35,11 +35,9 @@ int main()
     string dir_name;
     stringstream ss;
     ss.setf(ios::fixed);
-    ss << "L=" << L;
-    dir_name = "./data/ising/" + ss.str();
-    fs::create_directory("./data");
-    fs::create_directory("./data/ising");
-    fs::create_directory(dir_name);
+    //ss << "L=" << L;
+    dir_name = "./data/ising";
+    fs::create_directories(dir_name);
 
     unsigned seed = static_cast<unsigned int>(chrono::steady_clock::now().time_since_epoch().count());
     
@@ -56,8 +54,6 @@ int main()
     model.initialize_spins();
     int n_steps = 0;
     
-    
-    
     for (int i = 0; i < T.size(); i++)
     {
         string file_name;
@@ -67,7 +63,7 @@ int main()
         ss << "L=" << L << "_p=" << T[i];
         file_name = ss.str();
         
-        ofstream file((dir_name + "/" + file_name + ".bin").c_str(), ios::out | ios::binary);
+        ofstream file(dir_name + "/" + file_name + ".bin", ios::binary);
         
         n_steps = (i == 0 || isSame(fabs(T[i] - Tc), dT)) ? n_steps_initial : n_steps_thermalize;
 

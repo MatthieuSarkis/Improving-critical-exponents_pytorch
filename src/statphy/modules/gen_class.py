@@ -10,7 +10,7 @@ class Gen:
         return self
     def reset(self):
         self._cursor = 0
-    def len(self):
+    def __len__(self):
         return self._n
 
 class GenUsingFile(Gen):
