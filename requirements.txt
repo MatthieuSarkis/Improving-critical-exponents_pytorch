@@ -1,6 +1,7 @@
 torch
 torchvision
 numpy
+numba
 matplotlib
 jupyter
 tqdm

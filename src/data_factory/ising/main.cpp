@@ -64,12 +64,14 @@ int main()
         stringstream ss;
         ss.setf(ios::fixed);
         ss << setprecision(4);
-        ss << "T=" << T[i];
+        ss << "L=" << L << "_p=" << T[i] << ".bin";
         file_name = ss.str();
         
         ofstream file((dir_name + "/" + file_name + ".bin").c_str(), ios::out | ios::binary);
         
         n_steps = (i == 0 || isSame(fabs(T[i] - Tc), dT)) ? n_steps_initial : n_steps_thermalize;
+
+        cout << "L=" << L << " T=" << T[i] << endl;
         
         for (int j = 0; j < n_steps; j++)
         {

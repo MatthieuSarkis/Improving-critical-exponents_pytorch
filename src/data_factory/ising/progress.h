@@ -74,7 +74,7 @@ void Progress::Reset(const int total_iters)
 
 void Progress::Next(const int idx, std::ostream& stm)
 {
-    curr = (int)((double)(idx + 1) * (1 / (double)total_iterations) * 100);
+    curr = (int)((idx + 1.0) * (1.0 / total_iterations) * 100);
     if (curr != prev)
     {
         PrintTimePercentage(idx, stm);
