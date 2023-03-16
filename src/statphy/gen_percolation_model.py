@@ -11,10 +11,12 @@
 """Square Lattice Percolation model."""
 
 import numpy as np
+import os
+import itertools
 
-def percolation_configuration(L, p):
+def generate(L, p):
     spin = (np.random.random(size=(L,L)) < p).astype(np.int8)
-    return 2 * spin - 1
+    return spin
 
 def generate_data(L, p_arr, max_configs_per_p=1000):
     X, y = [], []
@@ -24,9 +26,30 @@ def generate_data(L, p_arr, max_configs_per_p=1000):
     for p in p_arr:
         unique_labels[str(p)] = j
         for i in range(max_configs_per_p):
-            X.append(percolation_configuration(L, p))
+            X.append(generate(L, p))
             y.append(j)
         j += 1
     X = np.array(X).reshape(-1, L, L, 1)
     y = np.array(y).reshape(-1, )
     return X, y, unique_labels
+
+
+if __name__ == '__main__':
+
+    L_arr = [1024,]
+    p_arr = [0.5927,]
+    n_samples = 1000
+
+    odir = 'generated_data/real/perc'
+    os.makedirs(odir, exist_ok=True)
+
+    for L, p in itertools.product(L_arr, p_arr):
+
+        print(f'L={L}, p={p}')
+
+        data = np.empty((n_samples,L,L), np.int8)
+
+        for i in range(n_samples):
+            data[i] = generate(L, p)
+
+        np.save(f'{odir}/L_{L}_p_{p}.npy', data)

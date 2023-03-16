@@ -14,7 +14,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.ndimage import measurements
+import scipy.ndimage as imgprocessing
 
 from numba import jit
 import math
@@ -97,18 +97,18 @@ def corr_func_exact_method(label : np.ndarray, max_r : int):
 
 if __name__ == '__main__':
     import sys
-    import plot_func
+    import plt_funcs
     import tqdm
 
     # Calculate correlation function
-    n_samples = 10 # number of samples
-    L = 2048 
-    p_arr = [0.55, 0.59, 0.65] # p-value 0.52,0.54,0.55,0.56
+    n_samples = 100 # number of samples
+    L = 1024 
+    p_arr = [0.5928,] # p-value 0.52,0.54,0.55,0.56
     len_p_arr = len(p_arr)
     max_r = 2 * L
     gr_accum = np.zeros((max_r, len_p_arr), dtype=float)
     r = np.arange(max_r, dtype=int)
-    np.random.seed(72)
+    #np.random.seed(72)
 
     print(f"# L={L}, n_samples={n_samples} " )
 
@@ -117,9 +117,9 @@ if __name__ == '__main__':
         for ip in range(len_p_arr):
             p = p_arr[ip]
             mat = (np.random.random(size=(L,L)) < p).astype(int)
-            labeled, num = measurements.label(mat)
+            labeled, num = imgprocessing.label(mat)
             labeled = labeled - 1 # shift value of labels to make the computation easier
-            #mass = measurements.sum(mat, labeled, index=labeled.max()+1).astype(int)
+            #mass = imgprocessing.sum(mat, labeled, index=labeled.max()+1).astype(int)
             #indx_big = np.argmax(mass)
             perc_x = np.intersect1d(labeled[0,:], labeled[-1,:])
             perc = perc_x[np.where(perc_x >= 0)] 
@@ -129,14 +129,18 @@ if __name__ == '__main__':
                 perc = perc_y[np.where(perc_y >= 0)] 
                 indx_perc = perc[0] if len(perc) > 0 else -1
 
+
             if indx_perc < 0:
                 gr = corr_func(labeled, max_r=max_r, n_trials=100*L**2)
             else:
-                gr = corr_func_ignore_a_clus(labeled, max_r=max_r, n_trials=200*L**2, indx_skip=indx_perc)
+                gr = corr_func(labeled, max_r=max_r, n_trials=100*L**2)
+                # gr = corr_func_ignore_a_clus(labeled, max_r=max_r, n_trials=200*L**2, indx_skip=indx_perc)
 
             gr_accum[:,ip] = gr_accum[:,ip] + gr
 
     gr_accum = gr_accum / n_samples
+
+
 
     # Plot data - linearly binned
     for ip in range(len_p_arr):
@@ -144,9 +148,9 @@ if __name__ == '__main__':
         indx = np.nonzero(y)
         x, y = x[indx], y[indx]
 
-        plot_func.logplotXY(plt, x, y, sim_st=f"$p={p_arr[ip]}$", 
+        plt_funcs.logplotXY(plt, x, y, sim_st=f"$p={p_arr[ip]}$", 
                         scale_xy_logplot= 1.05,
-                        show_slope=True, xlow=2, xup=9, slope_st='\\eta' ,
+                        show_slope=True, xlow=1, xup=4, slope_st='\\eta' ,
                         marker='.', markersize=None)
 
     plt.xlabel('$r$', fontsize=16)

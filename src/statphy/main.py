@@ -12,12 +12,12 @@
 
 
 ###################### INITIAL PARAMETERS, JUST CHANGE THIS PART #####################
-p = 2.2692
-L = 32
-idir_fake = f'./generated_data/fake-denoising-diffusion-pytorch/ising/2023.03.06.23.10.08'
-idir_real = f'./generated_data/real/ising'
+p = 0.5927
+L = 1024
+idir_fake = f'./generated_data/fake-denoising-diffusion-pytorch/perc/2023.03.06.23.10.08'
+idir_real = f'./generated_data/real/perc'
 max_n_samples = 5000
-odir = 'output_files-ising'
+odir = 'output_files-perc'
 
 clustering_sample_images = True
 calc_statistics = True
@@ -35,22 +35,27 @@ from modules import gen_class
 
 ######################## USEFULL FUNCTIONS ######################
 
-def get_data(idir, sep='_', ext='npy'):
+def get_data(idir, sep='_') -> np.ndarray:
     """
-    read all files matched with ext and append the read data, and return final data
+    read all files matched with ext and append the data, and return it
     """
-    filepattern = f'*L{sep}{L}_p{sep}{p}*.{ext}'
+    filepattern = f'*L{sep}{L}_p{sep}{p}*.*'
     filelist = glob.glob(os.path.join(idir, filepattern))
+
+    if len(filelist) == 0:
+        return None
 
     data = np.empty((0,L,L), np.int8)
 
     for path in filelist:
-        if ext == 'npy':
+
+        filename, ext = os.path.splitext(path)
+
+        if ext == '.npy':
             curr = np.load(path).astype(np.int8)
-        elif ext == 'bin':
-            curr = np.fromfile(path, np.int8).reshape((-1,L,L))
         else:
-            pass
+            curr = np.fromfile(path, np.int8).reshape((-1,L,L))
+
         data = np.append(data, curr, axis=0)
     
     return data
@@ -73,20 +78,22 @@ if __name__ == '__main__':
         filenamesuffix = f'(L={L},p={p},n={n_samples})--{suffix}'
         plt_funcs.plot_stats(plt, stats, odir_figs, filenamesuffix, f'$L={L}$' )
    
+    print(50*'-')
+    print(f'idir_real: {idir_real}')
+    print(f'idir_fake: {idir_fake}')
+    
+    realdata = get_data(idir_real,)
+    fakedata = get_data(idir_fake,)
 
-    fakedata, realdata = None, None
 
-    if not os.path.exists(idir_fake):
-        print(f'dir {idir_fake} does not exist!')
+    if fakedata is None:
+        print(f'No fakedata!')
     else:
-        fakedata = get_data(idir_fake, ext='npy')
         print(f'fakedata.shape={fakedata.shape}')
 
-    if not os.path.exists(idir_real):
-        print(f'dir {idir_real} does not exist!')
+    if realdata is None:
+        print(f'No realdata!')
     else:
-        realdata = get_data(idir_real, ext='bin')
-        realdata = realdata.reshape((-1, L, L))
         print(f'realdata.shape={realdata.shape}')
 
    

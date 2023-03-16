@@ -222,7 +222,7 @@ class Measure:
             
 
             # calcualte gr
-            gr = perc_corr.corr_func(label, max_r=max_r, n_trials=100*L**2)
+            gr = perc_corr.corr_func(label, max_r=max_r, n_trials=10*L**2)
             # if indx_perc < 0:
             #     gr = perc_corr.corr_func(label, max_r=max_r, n_trials=100*L**2)
             # else:
@@ -235,8 +235,7 @@ class Measure:
         
         # end for loop
         
-        # finalize the gr arrays
-
+        # finalize
         self.history = {
             'n_samples' : count_samples,
             'shape' : img_shape,

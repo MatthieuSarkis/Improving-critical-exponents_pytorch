@@ -115,7 +115,7 @@ def plot_stats(plt, stats: dict, odir_figs: str, filenamesuffix: str, curve_labe
     logplotXY(plt, x, y, 
               sim_st=curve_label, xlabel='$r_g$', ylabel='$m$', 
               scale_xy_logplot= 1, 
-              show_slope=True, xlow=1, xup=4, slope_st='d_f' , 
+              show_slope=True, xlow=3, xup=8, slope_st='d_f' , 
               precision=3, 
               marker='.', markersize=None, show_legend=True,  
               outfilename=f'{odir_figs}/rg_m{filenamesuffix}.pdf')
