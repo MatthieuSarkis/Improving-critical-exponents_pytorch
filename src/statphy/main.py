@@ -55,11 +55,6 @@ def get_data(idir, sep='_', ext='npy'):
     
     return data
 
-
-
-
-
-
 ######################## MAIN FUNCTION ######################
 if __name__ == '__main__':
 
