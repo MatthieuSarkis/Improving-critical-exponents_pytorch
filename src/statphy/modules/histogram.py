@@ -25,7 +25,11 @@ def hist(X, W=None, nbins=33, density=True, log_bin=True):
         hist, bin_edges = np.histogram(X, bins=nbins,
                                        weights=W, density=density)
 
+    # if log_bin:
+    #     bin_centers = np.exp( 0.5 * (np.log(bin_edges[1:]) + np.log(bin_edges[:-1])) )
+    # else:
     bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+
     bin_sizes = np.diff(bin_edges)
 
     indx = (hist > 0)

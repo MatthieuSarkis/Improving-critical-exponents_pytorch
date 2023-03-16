@@ -53,6 +53,7 @@ def logplotXY(plt, x, y, xlabel=None, ylabel=None, title=None, outfilename=None,
     if show_slope:
         indx = (x >= xlow) & (x <= xup)
         xn, yn = x[indx], y[indx]
+
         expo, c, expo_err, c_err = fit.loglog_slope(xn, yn)
         xn = np.logspace(np.log10(xn.min()), np.log10(xn.max()))
         yn = c * xn ** expo
@@ -73,27 +74,31 @@ def logplotXY(plt, x, y, xlabel=None, ylabel=None, title=None, outfilename=None,
 
 
 
-def plot_stats(plt, stats: dict, odir_figs: str, filenamesuffix: str, curve_label: str ):
+def plot_stats(plt, stats: dict, odir_fig: str, odir_txt: str, filenamesuffix: str, curve_label: str ):
 
     # part plot ns
     ns = stats['ns']
     x, y, dx = ns['bin_centers'], ns['hist'], ns['bin_sizes']
 
-    # with open(f'{odir}/ns_{filenamesuffix}.dat', 'w') as file:
-    #     for z in zip(x, y, dx):
-    #         file.write(f'{z[0]}\t{z[1]}\t{z[2]}\n')
+    with open(f'{odir_txt}/ns{filenamesuffix}.dat', 'w') as file:
+        for z in zip(x, y, dx):
+            file.write(f'{z[0]}\t{z[1]}\t{z[2]}\n')
 
     plt.figure()
     logplotXY(plt, x, y, 
               sim_st=curve_label, xlabel='$s$', ylabel='$n(s)$',  
               xlow = 1.1e1, xup = 2e2, slope_st = '\\tau', show_legend=True, 
-              outfilename = f'{odir_figs}/ns{filenamesuffix}.pdf',)
+              outfilename = f'{odir_fig}/ns{filenamesuffix}.pdf',)
     plt.close()
     
 
 
     # part plot gr
     x, y = stats['r,gr'] # r, gr
+
+    with open(f'{odir_txt}/gr{filenamesuffix}.dat', 'w') as file:
+        for z in zip(x, y):
+            file.write(f'{z[0]}\t{z[1]}\n')
 
     plt.figure()
     logplotXY(plt, x, y, 
@@ -102,7 +107,7 @@ def plot_stats(plt, stats: dict, odir_figs: str, filenamesuffix: str, curve_labe
               show_slope=True, xlow=1, xup=4, slope_st='\\eta' , 
               precision=3, 
               marker='.', markersize=None, show_legend=True,  
-              outfilename=f'{odir_figs}/gr{filenamesuffix}.pdf')
+              outfilename=f'{odir_fig}/gr{filenamesuffix}.pdf')
     plt.close()
 
 
@@ -111,14 +116,18 @@ def plot_stats(plt, stats: dict, odir_figs: str, filenamesuffix: str, curve_labe
     # part plot gr
     x, y = stats['rg,m'] 
 
+    with open(f'{odir_txt}/mgr{filenamesuffix}.dat', 'w') as file:
+        for z in zip(x, y):
+            file.write(f'{z[0]}\t{z[1]}\n')
+
     plt.figure()
-    logplotXY(plt, x, y, 
+    logplotXY(plt, x[1:], y[1:], 
               sim_st=curve_label, xlabel='$r_g$', ylabel='$m$', 
               scale_xy_logplot= 1, 
-              show_slope=True, xlow=3, xup=8, slope_st='d_f' , 
+              show_slope=True, xlow=3, xup=10, slope_st='d_f' , 
               precision=3, 
               marker='.', markersize=None, show_legend=True,  
-              outfilename=f'{odir_figs}/rg_m{filenamesuffix}.pdf')
+              outfilename=f'{odir_fig}/rg_m{filenamesuffix}.pdf')
     plt.close()
 
 

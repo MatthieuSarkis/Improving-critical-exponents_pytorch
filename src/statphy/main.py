@@ -16,7 +16,7 @@ p = 0.5927
 L = 1024
 idir_fake = f'./generated_data/fake-denoising-diffusion-pytorch/perc/2023.03.06.23.10.08'
 idir_real = f'./generated_data/real/perc'
-max_n_samples = 100
+max_n_samples = 3
 odir = 'output_files-perc'
 
 clustering_sample_images = True
@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
 
         filenamesuffix = f'(L={L},p={p},n={n_samples})--{suffix}'
-        plt_funcs.plot_stats(plt, stats, odir_figs, filenamesuffix, f'$L={L}$' )
+        plt_funcs.plot_stats(plt, stats, odir_figs, odir_txt, filenamesuffix, f'$L={L}$' )
    
     print(50*'-')
     print(f'idir_real: {idir_real}')

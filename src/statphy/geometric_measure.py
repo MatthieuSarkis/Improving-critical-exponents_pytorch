@@ -54,10 +54,14 @@ def clustering(imgs,
     return labels, nums
 
 
-def bining_xy(X: np.ndarray, Y: np.ndarray, nbins: int = -1):
+def bining_xy(X: np.ndarray, Y: np.ndarray, nbins: int = -1, logspace=True):
     '''
     It divides xrange to nbins and calculate the value of y_avg and x_avg for each bin.
     '''
+    if logspace:
+        mask = X > 0
+        X, Y = np.log(X[mask]), np.log(Y[mask])
+
     xmax, xmin = np.max(X), np.min(X)
     if nbins < 0:
         dx = 1
@@ -77,6 +81,9 @@ def bining_xy(X: np.ndarray, Y: np.ndarray, nbins: int = -1):
     Cn = Cn[nonzero_indxs]
     Xn = Xn[nonzero_indxs] / Cn
     Yn = Yn[nonzero_indxs] / Cn
+
+    if logspace:
+        Xn, Yn = np.exp(Xn), np.exp(Yn)
 
     return (Xn, Yn)
     
@@ -273,12 +280,10 @@ class Measure:
         img_shape = self.img_shape
         img_size = np.product(img_shape)
 
-
-        ns = self.__cluster_number_density(nbins = nbins_for_ns)
         
         self.stats['rg,m'] = bining_xy(np.sqrt(self.history['all_Rs2']), self.history['all_mass'], nbins=nbins_for_m_gr)
 
-        self.stats['ns'] = ns 
+        self.stats['ns'] = self.__cluster_number_density(nbins = nbins_for_ns) 
         self.stats['chi'] = np.average(self.history['all_chi'])
         self.stats['xi'] = np.average(self.history['all_xi'])
         self.stats['Pinf'] = np.average(self.history['all_big']) / img_size
@@ -305,17 +310,6 @@ class Measure:
         where N(s) is histogram of cluster size s, 
         and N is the number of configurations, 
         and img_size is the size of image (lattice)
-
-        Parameters
-        ----------
-        all_mass : array int
-            list of area of clusters over all configurations.
-        img_size : int
-            the size of each image which is Lx*Ly.
-        n_imgs : int
-            number of images
-        nbins : int, default=None
-            number of bins for calculating the histogram of n(s).
             
         Returns
         ----------
