@@ -16,7 +16,7 @@ p = 0.5927
 L = 1024
 idir_fake = f'./generated_data/fake-denoising-diffusion-pytorch/perc/2023.03.06.23.10.08'
 idir_real = f'./generated_data/real/perc'
-max_n_samples = 3
+max_n_samples = 500
 odir = 'output_files-perc'
 
 clustering_sample_images = True
