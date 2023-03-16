@@ -17,8 +17,7 @@ L = 32
 idir_fake = f'./generated_data/fake-denoising-diffusion-pytorch/ising/2023.03.06.23.10.08'
 idir_real = f'./generated_data/real/ising'
 max_n_samples = 5000
-odir_figs = 'output_files-ising/fig'
-odir_data = 'output_files-ising/txt'
+odir = 'output_files-ising'
 
 clustering_sample_images = True
 calc_statistics = True
@@ -30,7 +29,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import geometric_measure
-import plot_func
+import plt_funcs
 from modules import gen_class
 
 
@@ -47,7 +46,7 @@ def get_data(idir, sep='_', ext='npy'):
 
     for path in filelist:
         if ext == 'npy':
-            curr = np.load(path)
+            curr = np.load(path).astype(np.int8)
         elif ext == 'bin':
             curr = np.fromfile(path, np.int8).reshape((-1,L,L))
         else:
@@ -58,25 +57,26 @@ def get_data(idir, sep='_', ext='npy'):
 
 
 
-def do_all_jobs(img_gen, suffix='real'):
 
-    n_samples = len(img_gen)
-
-
-    # get the statistics of measures
-    measure_obj = geometric_measure.Measure()
-
-    history = measure_obj.calc_history(img_gen, (L,L), 1, True)
-    stats = measure_obj.get_stats(nbins_for_ns=33, nbins_for_m_gr=33)
-
-
-    filenamesuffix = f'(L={L},p={p},n={n_samples})--{suffix}'
-    plot_func.plot_stats(plt, stats, odir_figs, filenamesuffix, f'$L={L}$' )
 
 
 ######################## MAIN FUNCTION ######################
 if __name__ == '__main__':
 
+
+    def do_all_jobs(img_gen, suffix='real'):
+
+        n_samples = len(img_gen)
+
+        # get the statistics of measures
+        measure_obj = geometric_measure.Measure()
+
+        history = measure_obj.calc_history(img_gen, (L,L), 1, True)
+        stats = measure_obj.get_stats(nbins_for_ns=33, nbins_for_m_gr=33)
+
+
+        filenamesuffix = f'(L={L},p={p},n={n_samples})--{suffix}'
+        plt_funcs.plot_stats(plt, stats, odir_figs, filenamesuffix, f'$L={L}$' )
    
 
     fakedata, realdata = None, None
@@ -95,8 +95,9 @@ if __name__ == '__main__':
         print(f'realdata.shape={realdata.shape}')
 
    
+    odir_figs, odir_txt = f'{odir}/fig', f'{odir}/txt'
     os.makedirs(odir_figs, exist_ok=True)
-    os.makedirs(odir_data, exist_ok=True)
+    os.makedirs(odir_txt, exist_ok=True)
     
     print(50*'-')
  
@@ -111,14 +112,14 @@ if __name__ == '__main__':
             imgs = fakedata[:n_samples]
             plt.figure()
             labels, _ = geometric_measure.clustering(imgs, lower_size=5)
-            plot_func.plot_imgs_labels(plt, imgs, labels, outfilename=f'{odir_figs}/imgs_fake(L={L}).pdf')
+            plt_funcs.plot_imgs_labels(plt, imgs, labels, outfilename=f'{odir_figs}/fake_imgs(L={L},p={p}).pdf')
             plt.close()
 
         if realdata is not None:
             imgs = realdata[:n_samples]
             plt.figure()
             labels, _ = geometric_measure.clustering(imgs, lower_size=5)
-            plot_func.plot_imgs_labels(plt, imgs, labels, outfilename=f'{odir_figs}/imgs_real-L={L}_p={p}.pdf')
+            plt_funcs.plot_imgs_labels(plt, imgs, labels, outfilename=f'{odir_figs}/real_imgs(L={L},p={p}).pdf')
             plt.close()
 
 

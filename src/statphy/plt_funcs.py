@@ -72,6 +72,7 @@ def logplotXY(plt, x, y, xlabel=None, ylabel=None, title=None, outfilename=None,
         plt.savefig(outfilename, pad_inches=0.01, bbox_inches='tight')
 
 
+
 def plot_stats(plt, stats: dict, odir_figs: str, filenamesuffix: str, curve_label: str ):
 
     # part plot ns
