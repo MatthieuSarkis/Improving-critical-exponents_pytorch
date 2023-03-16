@@ -14,8 +14,8 @@
 ###################### INITIAL PARAMETERS, JUST CHANGE THIS PART #####################
 p = 2.2692
 L = 32
-fake_imgs_file = f'./generated_data/fake-denoising-diffusion-pytorch/ising/2023.03.06.23.10.08/L={L}_p={p}.npy'
-real_imgs_file = f'./generated_data/real/ising/L={L}_p={p}.bin'
+idir_fake = f'./generated_data/fake-denoising-diffusion-pytorch/ising/2023.03.06.23.10.08'
+idir_real = f'./generated_data/real/ising'
 max_n_samples = 5000
 odir_figs = 'output_files-ising/fig'
 odir_data = 'output_files-ising/txt'
@@ -25,6 +25,8 @@ calc_statistics = True
 
 ######################## IMPORT MODULES #########################
 import os
+import glob
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import geometric_measure
@@ -33,6 +35,28 @@ from modules import gen_class
 
 
 ######################## USEFULL FUNCTIONS ######################
+
+def get_data(idir, sep='_', ext='npy'):
+    """
+    read all files matched with ext and append the read data, and return final data
+    """
+    filepattern = f'*L{sep}{L}_p{sep}{p}*.{ext}'
+    filelist = glob.glob(os.path.join(idir, filepattern))
+
+    data = np.empty((0,L,L), np.int8)
+
+    for path in filelist:
+        if ext == 'npy':
+            curr = np.load(path)
+        elif ext == 'bin':
+            curr = np.fromfile(path, np.int8).reshape((-1,L,L))
+        else:
+            pass
+        data = np.append(data, curr, axis=0)
+    
+    return data
+
+
 
 def do_all_jobs(img_gen, suffix='real'):
 
@@ -53,20 +77,20 @@ def do_all_jobs(img_gen, suffix='real'):
 ######################## MAIN FUNCTION ######################
 if __name__ == '__main__':
 
+   
 
     fakedata, realdata = None, None
 
-    if not os.path.exists(fake_imgs_file):
-        print(f'File {fake_imgs_file} does not exist!')
+    if not os.path.exists(idir_fake):
+        print(f'dir {idir_fake} does not exist!')
     else:
-        fakedata = np.load(fake_imgs_file)
+        fakedata = get_data(idir_fake, ext='npy')
         print(f'fakedata.shape={fakedata.shape}')
-        #print(fakedata[0].min(), fakedata[0].max())
 
-    if not os.path.exists(real_imgs_file):
-        print(f'File {real_imgs_file} does not exist!')
+    if not os.path.exists(idir_real):
+        print(f'dir {idir_real} does not exist!')
     else:
-        realdata = np.fromfile(real_imgs_file, dtype=np.int8) # shape=n*L*L
+        realdata = get_data(idir_real, ext='bin')
         realdata = realdata.reshape((-1, L, L))
         print(f'realdata.shape={realdata.shape}')
 
@@ -117,5 +141,5 @@ if __name__ == '__main__':
             # print ('Calculating the statsitics of fake images ...')
 
             # img_gen = gen_class.GenUsingList(realdata, max_n_samples)
-            # do_all_statistics_jobs(img_gen, suffix='fake')
+            # do_all_jobs(img_gen, suffix='fake')
 
