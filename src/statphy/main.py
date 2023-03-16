@@ -16,7 +16,7 @@ p = 0.5927
 L = 1024
 idir_fake = f'./generated_data/fake-denoising-diffusion-pytorch/perc/2023.03.06.23.10.08'
 idir_real = f'./generated_data/real/perc'
-max_n_samples = 5000
+max_n_samples = 100
 odir = 'output_files-perc'
 
 clustering_sample_images = True
@@ -35,7 +35,7 @@ from modules import gen_class
 
 ######################## USEFULL FUNCTIONS ######################
 
-def get_data(idir, sep='_') -> np.ndarray:
+def get_data(idir, max_n_samples = -1, sep='_') -> np.ndarray:
     """
     read all files matched with ext and append the data, and return it
     """
@@ -55,6 +55,11 @@ def get_data(idir, sep='_') -> np.ndarray:
             curr = np.load(path).astype(np.int8)
         else:
             curr = np.fromfile(path, np.int8).reshape((-1,L,L))
+
+        count_samples = len(data) + len(curr)
+        if max_n_samples > 0 and count_samples >= max_n_samples:
+            data = np.append(data, curr[:max_n_samples-len(data)], axis=0)
+            break
 
         data = np.append(data, curr, axis=0)
     
@@ -82,8 +87,8 @@ if __name__ == '__main__':
     print(f'idir_real: {idir_real}')
     print(f'idir_fake: {idir_fake}')
     
-    realdata = get_data(idir_real,)
-    fakedata = get_data(idir_fake,)
+    realdata = get_data(idir_real, max_n_samples)
+    fakedata = get_data(idir_fake, max_n_samples)
 
 
     if fakedata is None:
